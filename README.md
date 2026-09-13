@@ -1,5 +1,7 @@
 # Codebase Academy
 
+[![CI](https://github.com/Noah-Brown/codebase-academy/actions/workflows/ci.yml/badge.svg)](https://github.com/Noah-Brown/codebase-academy/actions/workflows/ci.yml)
+
 Software-engineering lessons taught from your own pull requests. A canonical curriculum and a learner
 model decide _what_ you should learn next. Your current code supplies the examples.
 
@@ -82,7 +84,7 @@ docs/
 
 ## Contributing
 
-Issues and pull requests are welcome. Before opening a PR, run `npm run check`. The product brief
+Issues and pull requests are welcome. Before opening a PR, run `npm run check`; CI runs the same checks, plus curriculum validation and a production build, on every pull request. The product brief
 ([`docs/product-handoff.md`](docs/product-handoff.md)) explains what the project is and is not trying to be,
 and [`docs/decisions.md`](docs/decisions.md) records why things are built the way they are. Curriculum
 changes go through the JSON in `packages/curriculum/data/` and must pass `npm run curriculum:validate`.
