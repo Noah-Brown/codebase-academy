@@ -1,0 +1,27 @@
+{
+  "name": "@academy/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "generate": "drizzle-kit generate",
+    "migrate": "tsx --env-file-if-exists=../../.env scripts/migrate.ts",
+    "import-curriculum": "tsx --env-file-if-exists=../../.env scripts/import-curriculum.ts"
+  },
+  "dependencies": {
+    "@academy/curriculum": "*",
+    "@academy/learning": "*",
+    "@academy/shared": "*",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "drizzle-kit": "^0.31.10"
+  }
+}

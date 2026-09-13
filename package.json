@@ -1,0 +1,44 @@
+{
+  "name": "codebase-academy",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @academy/web",
+    "build": "npm run build -w @academy/web",
+    "worker": "npm run start -w @academy/worker",
+    "worker:dev": "npm run dev -w @academy/worker",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:generate": "npm run generate -w @academy/db",
+    "db:migrate": "npm run migrate -w @academy/db",
+    "curriculum:validate": "npm run validate -w @academy/curriculum",
+    "curriculum:import": "npm run import-curriculum -w @academy/db",
+    "demo:select": "tsx packages/learning/scripts/demo-select.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.5.1",
+    "eslint": "^10.10.0",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^5.0.0"
+  }
+}

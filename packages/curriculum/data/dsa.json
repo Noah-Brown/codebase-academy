@@ -1,0 +1,208 @@
+{
+  "domain": {
+    "id": "dsa",
+    "title": "Data structures and algorithms",
+    "summary": "How data is organized in memory and how the cost of working with it grows as inputs grow.",
+    "order": 1
+  },
+  "concepts": [
+    {
+      "id": "dsa.arrays-and-lists",
+      "title": "Arrays and lists",
+      "domain": "dsa",
+      "summary": "Ordered collections that support indexed access and iteration; the default structure for sequences of data.",
+      "difficulty": 1,
+      "operationalImportance": 0.2,
+      "prerequisites": ["fundamentals.functions"],
+      "learningObjectives": [
+        "Trace common array transformations such as map, filter, and reduce",
+        "Explain the cost of inserting or removing at the front versus the end",
+        "Identify when a linear scan over a list becomes a performance concern"
+      ],
+      "recognitionSignals": [
+        "find, findIndex, or indexOf results used without handling the not-found case (undefined or -1)",
+        "inserting or removing at the front or middle of an array or list: shift, unshift, splice, insert(0, ...), pop(0)",
+        "index arithmetic such as i + 1, length - 1, or slice bounds",
+        "reduce or accumulator loops over arrays that may be empty"
+      ],
+      "misconceptionPatterns": [
+        "Assuming includes, find, or indexOf are constant-time lookups",
+        "Treating indexOf's -1 not-found result as falsy, or a found index of 0 as not found",
+        "Believing reduce without an initial value is safe on an empty array",
+        "Believing slice and splice both leave the original array unchanged"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain"],
+      "tags": ["data-structures"],
+      "version": 2
+    },
+    {
+      "id": "dsa.maps-and-sets",
+      "title": "Maps and sets",
+      "domain": "dsa",
+      "summary": "Key-based structures, usually hash tables, that answer 'have I seen this key?' and 'what value belongs to this key?' in expected constant time; sorted tree-based maps trade that for ordered keys and logarithmic lookup.",
+      "difficulty": 2,
+      "operationalImportance": 0.3,
+      "prerequisites": ["dsa.arrays-and-lists"],
+      "learningObjectives": [
+        "Choose between an array, a set, and a map for a lookup-heavy task",
+        "Explain how key equality works for objects versus strings",
+        "Refactor a nested-loop lookup into a map-based lookup"
+      ],
+      "recognitionSignals": [
+        "new Map() or new Set()",
+        "objects used as dictionaries keyed by ID",
+        "deduplication logic",
+        "groupBy or index-building code"
+      ],
+      "misconceptionPatterns": [
+        "Expecting object or array keys in a Map or Set to be matched by their contents rather than by reference",
+        "Assuming every map or dictionary iterates in insertion order (true for JavaScript Map and Python dict, false for Go maps, Java HashMap, Postgres jsonb keys, and integer-like keys on plain JS objects)",
+        "Believing a plain JavaScript object is a safe dictionary for arbitrary user-supplied keys such as __proto__ or constructor"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain", "compare"],
+      "tags": ["data-structures"],
+      "version": 2
+    },
+    {
+      "id": "dsa.stacks-and-queues",
+      "title": "Stacks and queues",
+      "domain": "dsa",
+      "summary": "Structures that define processing order: last-in-first-out for stacks, first-in-first-out for queues.",
+      "difficulty": 2,
+      "operationalImportance": 0.3,
+      "prerequisites": ["dsa.arrays-and-lists"],
+      "learningObjectives": [
+        "Distinguish LIFO and FIFO processing and predict output order",
+        "Trace an iterative traversal that uses an explicit stack, and predict how the visit order changes when the stack is swapped for a queue",
+        "Explain why dequeuing from the front of a plain array slows down as the queue grows, and name a structure that avoids it"
+      ],
+      "recognitionSignals": [
+        "an array or list used as a LIFO stack via push/pop (append/pop)",
+        "an in-process array, deque, or queue drained in FIFO order via shift/dequeue/popleft",
+        "an explicit stack or queue replacing recursion in traversal code",
+        "undo/redo history, bracket or tag matching, or in-process work lists processed in order"
+      ],
+      "misconceptionPatterns": [
+        "Confusing stack order with queue order, e.g. expecting push/pop to process items in arrival order",
+        "Believing an array-backed queue that dequeues with shift stays cheap as the queue grows",
+        "Believing that replacing recursion with an explicit stack removes the memory cost of deeply nested input, rather than moving it from the call stack to the heap"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain", "compare"],
+      "tags": ["data-structures"],
+      "version": 2
+    },
+    {
+      "id": "dsa.recursion",
+      "title": "Recursion",
+      "domain": "dsa",
+      "summary": "A function that solves a problem by calling itself on smaller instances until it reaches a base case.",
+      "difficulty": 2,
+      "operationalImportance": 0.2,
+      "prerequisites": ["fundamentals.functions"],
+      "learningObjectives": [
+        "Identify the base case and the progress toward it",
+        "Trace a recursive call on a small input",
+        "Explain the risk of stack overflow on deep or untrusted inputs"
+      ],
+      "recognitionSignals": [
+        "a function that calls itself",
+        "tree or nested JSON traversal",
+        "divide-and-conquer helpers",
+        "mutual recursion between functions"
+      ],
+      "misconceptionPatterns": [
+        "Believing Node.js (V8) or Python optimizes tail calls, so a tail-recursive function cannot overflow the stack",
+        "Assuming every input eventually reaches the base case, overlooking cyclic references or values that move away from it",
+        "Assuming recursion depth is safe because typical inputs are shallow, when nesting depth is controlled by users"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain"],
+      "tags": ["algorithms"],
+      "version": 2
+    },
+    {
+      "id": "dsa.complexity",
+      "title": "Time and space complexity",
+      "domain": "dsa",
+      "summary": "Big-O describes how work and memory grow with input size, which predicts where code will fall over at scale.",
+      "difficulty": 3,
+      "operationalImportance": 0.5,
+      "prerequisites": ["dsa.arrays-and-lists"],
+      "learningObjectives": [
+        "Estimate the time complexity of nested loops and chained collection operations",
+        "Explain why an O(n²) algorithm can be fine for small n and catastrophic for large n",
+        "Identify hidden linear work inside a loop, such as includes or spread-copying an accumulator"
+      ],
+      "recognitionSignals": [
+        "nested loops over two input-sized collections",
+        "find, includes, or indexOf called inside a loop or map/filter callback",
+        "copying or spreading an accumulator on every iteration, e.g. reduce((acc, x) => ({ ...acc, ... }))",
+        "materializing a whole input-sized result (file, response, or row set) in memory before processing it"
+      ],
+      "misconceptionPatterns": [
+        "Treating Big-O as a measure of actual runtime",
+        "Ignoring memory growth when counting only time",
+        "Assuming library calls are constant time"
+      ],
+      "assessmentModes": ["predict", "trace", "explain", "compare", "design"],
+      "tags": ["algorithms", "performance"],
+      "version": 2
+    },
+    {
+      "id": "dsa.trees",
+      "title": "Trees",
+      "domain": "dsa",
+      "summary": "Hierarchical structures such as file systems, DOMs, ASTs, and B-tree indexes, traversed depth-first or breadth-first.",
+      "difficulty": 3,
+      "operationalImportance": 0.3,
+      "prerequisites": ["dsa.recursion", "dsa.stacks-and-queues", "dsa.complexity"],
+      "learningObjectives": [
+        "Trace depth-first and breadth-first traversals on a small tree",
+        "Explain how tree height affects lookup cost",
+        "Recognize tree structures hiding in nested data such as comments or categories"
+      ],
+      "recognitionSignals": [
+        "parent/children relationships in data",
+        "recursive rendering of nested components",
+        "AST or DOM walking",
+        "self-referencing foreign keys"
+      ],
+      "misconceptionPatterns": [
+        "Assuming nested data such as comments or categories is always shallow",
+        "Assuming parent/child data loaded from a database or user input is guaranteed acyclic, so traversal needs no visited set or depth limit",
+        "Believing every tree gives logarithmic lookup regardless of balance"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain", "compare"],
+      "tags": ["data-structures"],
+      "version": 2
+    },
+    {
+      "id": "dsa.search-and-sort",
+      "title": "Searching and sorting",
+      "domain": "dsa",
+      "summary": "Ordering data and finding items in it efficiently, including binary search and stable comparison-based sorting.",
+      "difficulty": 3,
+      "operationalImportance": 0.3,
+      "prerequisites": ["dsa.complexity"],
+      "learningObjectives": [
+        "Explain why binary search requires sorted input",
+        "Predict the outcome of a custom comparator, including stability",
+        "Choose between sorting in the database and sorting in application code"
+      ],
+      "recognitionSignals": [
+        "sort calls with comparator functions or sort keys",
+        "sorting, filtering, or top-N selection in application code on rows that were already fetched",
+        "binary search, bisect, or lower-bound helpers",
+        "string ordering using localeCompare, collation, or case normalization"
+      ],
+      "misconceptionPatterns": [
+        "Believing default JavaScript sort compares numbers numerically",
+        "Believing a comparator may return a boolean instead of a negative, zero, or positive number",
+        "Assuming a query without ORDER BY returns rows in insertion or primary-key order",
+        "Believing binary search over unsorted or differently sorted data will fail loudly rather than silently return a wrong result"
+      ],
+      "assessmentModes": ["predict", "trace", "explain", "compare"],
+      "tags": ["algorithms"],
+      "version": 2
+    }
+  ]
+}

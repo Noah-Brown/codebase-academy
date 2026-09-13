@@ -1,0 +1,277 @@
+{
+  "domain": {
+    "id": "security",
+    "title": "Security",
+    "summary": "Protecting systems and data by understanding where trust changes hands and how attackers exploit misplaced assumptions.",
+    "order": 4
+  },
+  "concepts": [
+    {
+      "id": "security.trust-boundaries",
+      "title": "Trust boundaries",
+      "domain": "security",
+      "summary": "A trust boundary is anywhere data or control crosses from a less trusted party to a more trusted one; every crossing needs checks.",
+      "difficulty": 2,
+      "operationalImportance": 0.9,
+      "prerequisites": ["fundamentals.values-and-types"],
+      "learningObjectives": [
+        "Identify the trust boundaries a request crosses in a given change",
+        "Explain why anything from a client, webhook, or third party is untrusted",
+        "Locate where validation and authorization belong relative to each boundary"
+      ],
+      "recognitionSignals": [
+        "fields the server should derive itself, such as userId, role, price, or tenantId, read from the request body or form",
+        "webhook or callback handlers, and whether they verify a signature before acting",
+        "handlers that trust hidden form fields, client-computed totals, or flags set by the frontend",
+        "responses from third-party APIs, internal services, or LLMs used without checks in privileged operations"
+      ],
+      "misconceptionPatterns": [
+        "Treating data from your own frontend as trusted",
+        "Assuming internal services never send malicious input",
+        "Believing TypeScript types act as a trust boundary",
+        "Trusting a webhook payload because it arrived at an unguessable URL, without verifying its signature"
+      ],
+      "assessmentModes": ["recognize", "explain", "compare", "design"],
+      "tags": ["security", "threat-modeling"],
+      "version": 2
+    },
+    {
+      "id": "security.input-validation",
+      "title": "Input validation",
+      "domain": "security",
+      "summary": "Checking that untrusted input has the expected shape, type, and bounds before code relies on it.",
+      "difficulty": 2,
+      "operationalImportance": 0.8,
+      "prerequisites": ["security.trust-boundaries", "web.serialization"],
+      "learningObjectives": [
+        "Validate untrusted payloads with a schema at the boundary",
+        "Distinguish allow-listing from deny-listing",
+        "Identify missing bounds such as length, range, and array size"
+      ],
+      "recognitionSignals": [
+        "schema validation at a request, form, or message boundary (e.g. Zod, Valibot, JSON Schema, Pydantic)",
+        "deserialized request payloads or form data used without schema parsing, including type assertions such as `as T`",
+        "request bodies spread or passed whole into ORM create or update calls",
+        "file uploads or user-supplied sizes, counts, or page limits"
+      ],
+      "misconceptionPatterns": [
+        "Validating only on the client",
+        "Casting parsed JSON to a type instead of validating it",
+        "Validating format but not size or quantity",
+        "Believing per-field format checks are enough when the whole request body is passed to a create or update"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare", "design"],
+      "tags": ["security", "validation"],
+      "version": 2
+    },
+    {
+      "id": "security.injection",
+      "title": "Injection",
+      "domain": "security",
+      "summary": "When untrusted data is spliced into text that an interpreter parses — SQL, shell commands, HTML/JavaScript, or file paths — it can change the structure of what runs; the defense is APIs that keep data separate from code, such as bound parameters, argument arrays, and context-aware output encoding.",
+      "difficulty": 3,
+      "operationalImportance": 1,
+      "prerequisites": ["security.input-validation"],
+      "related": [
+        {
+          "id": "security.llm-prompt-injection",
+          "boundary": "Instructions injected into an LLM's context map there; there is no parameterization equivalent."
+        }
+      ],
+      "learningObjectives": [
+        "Explain why a parameterized query prevents SQL injection while string concatenation or interpolation does not",
+        "Identify the injection sink (SQL, shell command, HTML, file path) and the untrusted source that feeds it in a change",
+        "Predict how an attacker-controlled value changes the resulting query, command, markup, or path",
+        "Choose the safe API for a given sink, such as bound parameters, execFile with an argument array, or context-aware output encoding, and defend the choice over sanitizing input"
+      ],
+      "recognitionSignals": [
+        "SQL built by string concatenation or template interpolation, or unsafe raw-query helpers (e.g. $queryRawUnsafe, knex.raw, cursor.execute with f-strings)",
+        "ORDER BY, column, or table names taken from request input",
+        "shell execution with interpolated arguments (exec/execSync, subprocess with shell=True, os.system)",
+        "raw HTML sinks fed user content (dangerouslySetInnerHTML, innerHTML, v-html, |safe or unescaped template tags)",
+        "file-system paths built from user input without normalizing and checking the resolved path"
+      ],
+      "misconceptionPatterns": [
+        "Believing input validation alone prevents injection",
+        "Believing that because an app uses an ORM, strings interpolated into its raw-query helpers are safe",
+        "Believing query placeholders can safely parameterize identifiers such as column names, table names, or sort direction",
+        "Believing framework auto-escaping also protects raw-HTML APIs and user-supplied URLs placed in href or src attributes"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare", "defend"],
+      "tags": ["security", "owasp"],
+      "version": 2
+    },
+    {
+      "id": "security.secrets-management",
+      "title": "Secrets management",
+      "domain": "security",
+      "summary": "Keeping credentials such as API keys and private keys out of source, logs, and clients, and able to be rotated.",
+      "difficulty": 2,
+      "operationalImportance": 0.9,
+      "prerequisites": ["security.trust-boundaries", "systems.configuration"],
+      "learningObjectives": [
+        "Identify secrets that could leak through source control, logs, error messages, or client bundles",
+        "Explain how environment-based configuration keeps secrets out of code",
+        "Describe what rotation requires and why long-lived static credentials are risky"
+      ],
+      "recognitionSignals": [
+        "secret values placed in client-exposed environment prefixes (NEXT_PUBLIC_, VITE_, PUBLIC_) or imported into client-side code",
+        "hard-coded strings resembling API keys, private keys, or connection strings with passwords",
+        ".env files, credential files, or keys added to the repository, build arguments, or container images",
+        "credentials included in error messages, API responses, or logged headers and configuration"
+      ],
+      "misconceptionPatterns": [
+        "Believing a private repository makes committed secrets safe",
+        "Assuming environment variables are never exposed to the browser",
+        "Deleting a leaked secret from git without rotating it"
+      ],
+      "assessmentModes": ["recognize", "explain", "compare", "design"],
+      "tags": ["security", "configuration"],
+      "version": 2
+    },
+    {
+      "id": "security.credential-handling",
+      "title": "Password and token handling",
+      "domain": "security",
+      "summary": "Storing passwords with slow hashes, issuing and verifying tokens correctly, and limiting what a stolen credential can do.",
+      "difficulty": 3,
+      "operationalImportance": 1,
+      "prerequisites": ["web.authn-vs-authz"],
+      "learningObjectives": [
+        "Explain why passwords are hashed with slow, salted algorithms rather than encrypted",
+        "Evaluate token lifetime, storage location, and revocation for a session design",
+        "Identify token verification mistakes such as skipping signature, expiry, or audience checks, or accepting the algorithm named in the token",
+        "Identify reset tokens, session IDs, or API keys generated with a non-cryptographic random source"
+      ],
+      "recognitionSignals": [
+        "password hashing or comparison (bcrypt, scrypt, argon2, PBKDF2), or passwords passed to fast hashes such as MD5, SHA-1, or SHA-256",
+        "JWT or session-token sign, verify, and decode calls, including algorithm, expiry, and audience options",
+        "session cookies set with or without httpOnly and secure, or tokens stored in localStorage",
+        "tokens, reset codes, or keys generated with Math.random or other non-cryptographic randomness"
+      ],
+      "misconceptionPatterns": [
+        "Believing reversible encoding or encryption is an acceptable way to store passwords",
+        "Believing a fast hash such as SHA-256 is adequate for password storage as long as it is salted",
+        "Trusting a JWT's claims after decoding it without verifying the signature with a pinned algorithm, expiry, and audience",
+        "Assuming long-lived tokens are harmless if transmitted over HTTPS"
+      ],
+      "assessmentModes": ["recognize", "explain", "compare", "design", "defend"],
+      "tags": ["security", "auth"],
+      "version": 2
+    },
+    {
+      "id": "security.least-privilege",
+      "title": "Least privilege",
+      "domain": "security",
+      "summary": "Each user, service, and token should have only the access it needs, so any single compromise has a limited blast radius.",
+      "difficulty": 3,
+      "operationalImportance": 0.8,
+      "prerequisites": ["web.authn-vs-authz"],
+      "learningObjectives": [
+        "Identify over-broad permissions requested by a token, role, or integration",
+        "Explain blast radius using a concrete compromised-credential scenario",
+        "Design a narrower permission set for a service or integration"
+      ],
+      "recognitionSignals": [
+        "OAuth scopes or GitHub App permission lists",
+        "database users or IAM roles",
+        "admin or service-role clients used in request handlers",
+        "shared credentials across environments"
+      ],
+      "misconceptionPatterns": [
+        "Requesting broad scopes 'in case we need them later'",
+        "Using a superuser database connection for application traffic",
+        "Assuming internal tools do not need access control"
+      ],
+      "assessmentModes": ["recognize", "explain", "compare", "design", "defend"],
+      "tags": ["security", "auth"],
+      "version": 1
+    },
+    {
+      "id": "security.web-vulnerabilities",
+      "title": "Request forgery (CSRF and SSRF)",
+      "domain": "security",
+      "summary": "Confused-deputy attacks that borrow someone else's authority: CSRF makes a victim's browser send a state-changing request carrying its cookies, and SSRF makes your server send a request from inside your network to a destination the attacker chooses.",
+      "difficulty": 3,
+      "operationalImportance": 0.9,
+      "prerequisites": ["web.authn-vs-authz", "web.cors-and-same-origin"],
+      "learningObjectives": [
+        "Explain why a cookie-authenticated, state-changing endpoint is exposed to CSRF and how SameSite, Origin checks, and anti-CSRF tokens each reduce that exposure",
+        "Distinguish what CORS controls (which origins may read responses) from what CSRF defenses control (whether a cross-site request is honored)",
+        "Identify server-side fetches of user-influenced URLs as SSRF risks and predict what an attacker could reach, such as internal services or cloud metadata endpoints",
+        "Compare SSRF defenses such as destination allow-lists, blocking private address ranges after DNS resolution, and disabling redirects"
+      ],
+      "recognitionSignals": [
+        "state-changing handlers (POST/PUT/DELETE, server actions, or state-changing GETs) authenticated only by cookies",
+        "SameSite cookie attributes, anti-CSRF tokens, or Origin/Referer checks",
+        "server code fetching, proxying, or previewing URLs taken from request input or stored user data (image proxies, link unfurlers, user-configured webhook URLs)"
+      ],
+      "misconceptionPatterns": [
+        "Believing CORS stops a cross-site request from being sent and acted on, rather than only controlling whether the response can be read",
+        "Believing SameSite=Lax makes every cookie-authenticated endpoint immune to CSRF",
+        "Believing a string check on a URL's hostname is enough to prevent SSRF despite redirects, DNS rebinding, and alternate IP encodings"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare", "defend"],
+      "tags": ["security", "owasp"],
+      "version": 2
+    },
+    {
+      "id": "security.dependency-risk",
+      "title": "Third-party dependency risk",
+      "domain": "security",
+      "summary": "Every package, action, or remote script you add runs with your application's or build's privileges, so its identity, provenance, and install-time behavior are part of your attack surface.",
+      "difficulty": 2,
+      "operationalImportance": 0.7,
+      "prerequisites": ["security.trust-boundaries"],
+      "learningObjectives": [
+        "Evaluate a newly added dependency for provenance, maintenance, and whether it is the package actually intended",
+        "Explain how lockfiles and pinned versions make installs reproducible and limit surprise upgrades",
+        "Identify install-time scripts and transitive dependencies as code that runs with developer or CI access"
+      ],
+      "recognitionSignals": [
+        "new dependencies added to package.json, requirements.txt, pyproject.toml, go.mod, or similar manifests",
+        "loose version ranges or 'latest' for newly added dependencies",
+        "postinstall or other package lifecycle scripts",
+        "remote scripts piped to a shell or unpinned third-party actions in build steps"
+      ],
+      "misconceptionPatterns": [
+        "Assuming a package is legitimate because an AI assistant suggested it or its name looks plausible",
+        "Believing installing a package only downloads code and never executes it",
+        "Believing a popular, trusted package cannot ship a compromised release"
+      ],
+      "assessmentModes": ["recognize", "explain", "compare", "defend"],
+      "tags": ["security", "supply-chain"],
+      "version": 2
+    },
+    {
+      "id": "security.llm-prompt-injection",
+      "title": "Prompt injection and untrusted model output",
+      "domain": "security",
+      "summary": "Any text an LLM reads — user messages, documents, web pages, tool results — can carry instructions the model may follow, and model output is itself untrusted input; because no delimiter reliably prevents this, safety comes from limiting what the model can do and validating what it produces.",
+      "difficulty": 3,
+      "operationalImportance": 0.9,
+      "prerequisites": ["security.trust-boundaries"],
+      "learningObjectives": [
+        "Identify untrusted text that reaches a model's context in a change, including retrieved documents, tool results, and repository content",
+        "Explain why delimiters and system-prompt instructions reduce but do not prevent injected instructions from being followed",
+        "Identify model output flowing into privileged sinks such as SQL, HTML or markdown rendering, shell commands, tool calls, or outbound requests",
+        "Design mitigations that bound impact: minimal tool permissions, schema-validated structured output, and human confirmation for consequential actions"
+      ],
+      "recognitionSignals": [
+        "user-supplied or retrieved content concatenated or templated into LLM prompts",
+        "LLM tool or function-calling handlers that write data, send messages, or fetch URLs",
+        "model output parsed and passed to database queries, rendered as HTML or markdown, executed, or used as URLs",
+        "structured-output schemas or validation applied to model responses"
+      ],
+      "misconceptionPatterns": [
+        "Believing delimiters or 'ignore instructions in the following text' prompts reliably stop prompt injection",
+        "Treating model output as trusted because the application wrote the prompt",
+        "Believing injected instructions can only come from the direct user rather than from documents, web pages, or tool results the model reads",
+        "Granting an agent broad tool permissions on the assumption that the model will refuse malicious instructions"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare", "design", "defend"],
+      "tags": ["security", "llm"],
+      "version": 2
+    }
+  ]
+}

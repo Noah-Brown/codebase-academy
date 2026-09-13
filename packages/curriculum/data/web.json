@@ -1,0 +1,295 @@
+{
+  "domain": {
+    "id": "web",
+    "title": "Web and APIs",
+    "summary": "How clients and servers communicate over HTTP, and how to design APIs that behave predictably under real network conditions.",
+    "order": 2
+  },
+  "concepts": [
+    {
+      "id": "web.http-lifecycle",
+      "title": "HTTP request lifecycle",
+      "domain": "web",
+      "summary": "A request message (method, URL, headers, body) passes through server routing and middleware to handler code, and a response (status, headers, body, possibly streamed) travels back, with failure or client disconnection possible at every hop.",
+      "difficulty": 2,
+      "operationalImportance": 0.5,
+      "prerequisites": ["systems.networking-basics"],
+      "learningObjectives": [
+        "Trace a request from a client call through middleware to a handler and back",
+        "Explain where headers, body, and status are set and read",
+        "Identify where latency and failures can occur along the path"
+      ],
+      "recognitionSignals": [
+        "middleware ordering, matchers, or route-registration order",
+        "reading request headers or setting response headers, redirects, or rewrites",
+        "streaming responses or handlers that observe client disconnect (e.g. request abort signals)",
+        "proxying or forwarding requests between services"
+      ],
+      "misconceptionPatterns": [
+        "Believing a request either fully succeeds or fully fails",
+        "Assuming middleware runs for every route regardless of registration order or matcher configuration",
+        "Believing server-side work automatically stops when the client disconnects"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain", "compare"],
+      "tags": ["http", "networking"],
+      "version": 2
+    },
+    {
+      "id": "web.http-methods-and-status",
+      "title": "HTTP methods and status codes",
+      "domain": "web",
+      "summary": "Methods declare intended semantics (safe, idempotent, or neither) that servers must actually honor; status codes tell clients and intermediaries what happened and whether retrying or caching makes sense.",
+      "difficulty": 2,
+      "operationalImportance": 0.4,
+      "prerequisites": ["web.http-lifecycle"],
+      "learningObjectives": [
+        "Distinguish safe, idempotent, and non-idempotent methods",
+        "Choose appropriate status codes for validation, auth, conflict, and server errors",
+        "Explain how status codes drive client retry and caching behavior"
+      ],
+      "recognitionSignals": [
+        "choice of HTTP method for a new endpoint, especially GET handlers that change state",
+        "explicit status codes set in responses or thrown HTTP errors",
+        "client code branching on response.status or response.ok",
+        "401 versus 403 versus 404 decisions"
+      ],
+      "misconceptionPatterns": [
+        "Believing a failure reported only in a 200 response body will be treated as a failure by clients, caches, retries, and monitoring",
+        "Believing 403 is the right response when credentials are missing or invalid, or 401 when an authenticated user lacks permission",
+        "Assuming fetch rejects on 4xx and 5xx responses",
+        "Believing a GET handler that changes state is harmless because only your own UI calls it"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare"],
+      "tags": ["http", "api-design"],
+      "version": 2
+    },
+    {
+      "id": "web.serialization",
+      "title": "Serialization and JSON",
+      "domain": "web",
+      "summary": "Turning in-memory values into bytes for transport or storage and back again, and what gets lost along the way.",
+      "difficulty": 2,
+      "operationalImportance": 0.4,
+      "prerequisites": ["fundamentals.values-and-types"],
+      "related": [
+        {
+          "id": "security.input-validation",
+          "boundary": "Validating untrusted payloads against a schema maps there; what a wire format preserves or exposes maps here."
+        }
+      ],
+      "learningObjectives": [
+        "Predict how dates, big integers, undefined, NaN, and Maps survive a JSON round-trip",
+        "Identify precision loss when 64-bit IDs or decimal amounts pass through JSON or floating-point numbers",
+        "Identify accidental over-exposure of fields in serialized responses and compare explicit response mapping with returning database objects directly"
+      ],
+      "recognitionSignals": [
+        "encoding or decoding data at a process boundary (JSON.stringify/parse, protobuf, form data)",
+        "DTO or response mapping functions that choose which fields are exposed",
+        "Date, decimal, or 64-bit numeric ID fields crossing an API",
+        "handlers returning whole ORM or database rows"
+      ],
+      "misconceptionPatterns": [
+        "Assuming large integer IDs or decimal money values survive JSON and floating-point numbers without precision loss",
+        "Believing Dates round-trip through JSON as Date objects",
+        "Believing fields the UI does not display are not exposed to users"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain", "compare"],
+      "tags": ["http", "data"],
+      "version": 2
+    },
+    {
+      "id": "web.rest-design",
+      "title": "REST resource design",
+      "domain": "web",
+      "summary": "Modeling an API as resources with consistent URLs, methods, and representations so clients can reason about it.",
+      "difficulty": 3,
+      "operationalImportance": 0.3,
+      "prerequisites": ["web.http-methods-and-status", "web.serialization"],
+      "learningObjectives": [
+        "Evaluate whether routes model resources or leak implementation actions",
+        "Compare REST resources with RPC-style endpoints or framework RPC mechanisms (e.g. server actions, tRPC) for a given use case",
+        "Design error and versioning conventions an API can keep"
+      ],
+      "recognitionSignals": [
+        "URL paths that name actions (e.g. /createOrder, /getUsers)",
+        "nested resource URLs",
+        "API versioning prefixes or headers",
+        "shared error envelope types",
+        "renamed or removed fields in API response types"
+      ],
+      "misconceptionPatterns": [
+        "Believing a response field can be renamed or removed safely because the frontend was updated in the same deploy",
+        "Believing resource URLs should name actions (e.g. POST /deleteUser) rather than resources acted on by HTTP methods",
+        "Assuming each endpoint can use its own ad-hoc error shape without cost to clients"
+      ],
+      "assessmentModes": ["explain", "compare", "design", "defend"],
+      "tags": ["api-design", "architecture"],
+      "version": 2
+    },
+    {
+      "id": "web.authn-vs-authz",
+      "title": "Authentication vs. authorization",
+      "domain": "web",
+      "summary": "Authentication establishes who is making a request; authorization decides whether that identity may perform this action on this resource.",
+      "difficulty": 3,
+      "operationalImportance": 1,
+      "prerequisites": ["security.trust-boundaries", "web.http-lifecycle"],
+      "related": [
+        {
+          "id": "security.web-vulnerabilities",
+          "boundary": "CSRF and SSRF map there; missing ownership or role checks map here."
+        },
+        {
+          "id": "security.least-privilege",
+          "boundary": "Scopes of tokens, service roles, and integrations map there; per-request permission checks map here."
+        }
+      ],
+      "learningObjectives": [
+        "Distinguish identity verification from permission checks in a handler",
+        "Identify endpoints that authenticate but never check ownership or role",
+        "Explain where authorization must be enforced server-side and why client checks are insufficient"
+      ],
+      "recognitionSignals": [
+        "current-user or session lookup used to gate a handler, page, or RPC endpoint",
+        "queries by resource ID that do or do not also filter by owner, user, or tenant",
+        "role, permission, or policy checks",
+        "access restricted only in UI components or client-side route guards"
+      ],
+      "misconceptionPatterns": [
+        "Believing a logged-in user may access any resource whose ID they know",
+        "Believing hiding a button or page in the UI prevents the underlying endpoint from being called",
+        "Believing an authentication check in middleware also enforces per-resource permissions in every handler"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare", "design", "defend"],
+      "tags": ["security", "auth"],
+      "version": 2
+    },
+    {
+      "id": "web.pagination",
+      "title": "Pagination",
+      "domain": "web",
+      "summary": "Returning large collections in bounded pages, using offsets or cursors, so responses stay fast and consistent.",
+      "difficulty": 3,
+      "operationalImportance": 0.4,
+      "prerequisites": ["web.http-lifecycle"],
+      "learningObjectives": [
+        "Compare offset and cursor pagination under concurrent inserts",
+        "Explain why unbounded list endpoints become availability risks",
+        "Design a stable sort order for cursor pagination"
+      ],
+      "recognitionSignals": [
+        "limit/offset or skip/take parameters",
+        "cursor, after, or nextPageToken fields",
+        "list endpoints or queries without a limit",
+        "ORDER BY on a non-unique column combined with LIMIT or a cursor",
+        "calls to paginated third-party APIs with or without a next-page loop"
+      ],
+      "misconceptionPatterns": [
+        "Assuming offset pagination never skips or duplicates rows",
+        "Believing a timestamp or other non-unique column alone gives a stable cursor order",
+        "Assuming a single call to a paginated API returns the complete result set",
+        "Letting clients request arbitrarily large page sizes"
+      ],
+      "assessmentModes": ["predict", "explain", "compare", "design"],
+      "tags": ["api-design", "performance"],
+      "version": 2
+    },
+    {
+      "id": "web.retries",
+      "title": "Retry strategies",
+      "domain": "web",
+      "summary": "Re-attempting failed calls can mask transient faults, but only with limits, backoff, jitter, and awareness of what is safe to repeat.",
+      "difficulty": 3,
+      "operationalImportance": 0.7,
+      "prerequisites": ["web.http-methods-and-status", "reliability.timeouts"],
+      "related": [
+        {
+          "id": "reliability.failure-recovery",
+          "boundary": "What happens after attempts are exhausted (failed states, dead letters) maps there; attempt policy and backoff map here."
+        }
+      ],
+      "learningObjectives": [
+        "Decide which failures are worth retrying and which are not",
+        "Explain exponential backoff and why jitter prevents synchronized retry storms",
+        "Identify retries that can duplicate side effects"
+      ],
+      "recognitionSignals": [
+        "retry loops or retry helper libraries",
+        "backoff, delay, or sleep between attempts",
+        "maxAttempts or retry count configuration",
+        "retries wrapped around POST or payment-like calls"
+      ],
+      "misconceptionPatterns": [
+        "Believing immediate, repeated retries help a struggling dependency recover",
+        "Treating every error as retryable, including 400 or 422 validation failures",
+        "Ignoring 429 responses and Retry-After hints when scheduling the next attempt",
+        "Assuming retries configured at several layers (client, SDK, server, queue) add up rather than multiply"
+      ],
+      "assessmentModes": ["predict", "trace", "explain", "compare", "design"],
+      "tags": ["reliability", "http"],
+      "version": 2
+    },
+    {
+      "id": "web.idempotency",
+      "title": "Idempotency",
+      "domain": "web",
+      "summary": "An idempotent operation has the same effect whether it runs once or many times, which is what makes retries safe.",
+      "difficulty": 4,
+      "operationalImportance": 0.9,
+      "prerequisites": ["web.retries", "db.keys-and-constraints"],
+      "learningObjectives": [
+        "Predict the outcome when two requests with the same idempotency key arrive concurrently or after a crash mid-processing",
+        "Design an idempotency-key scheme with an atomic uniqueness guard and a stored result for replays",
+        "Evaluate which operations in a workflow are naturally idempotent and which need protection"
+      ],
+      "recognitionSignals": [
+        "Idempotency-Key headers or client-supplied request IDs",
+        "inserts or upserts keyed on a request, event, or delivery ID (e.g. ON CONFLICT DO NOTHING)",
+        "webhook or job handlers that may be delivered more than once",
+        "double-submit protection on forms or payment actions"
+      ],
+      "misconceptionPatterns": [
+        "Believing POST requests cannot be made idempotent",
+        "Believing it is safe to record an idempotency key only after the side effect succeeds",
+        "Believing a handler whose state update is idempotent (e.g. set status = 'paid') is safe to repeat even though it also triggers emails, charges, or other side effects"
+      ],
+      "assessmentModes": ["predict", "explain", "compare", "design", "defend"],
+      "tags": ["reliability", "data-integrity", "distributed-systems"],
+      "version": 2
+    },
+    {
+      "id": "web.cors-and-same-origin",
+      "title": "Same-origin policy and CORS",
+      "domain": "web",
+      "summary": "Browsers stop scripts on one origin from reading responses from another unless the server opts in with CORS headers; CORS controls what browsers may read, not who can call the server.",
+      "difficulty": 3,
+      "operationalImportance": 0.6,
+      "prerequisites": ["web.http-lifecycle"],
+      "related": [
+        {
+          "id": "security.web-vulnerabilities",
+          "boundary": "Whether a cross-site request is honored (CSRF) maps there; whether its response can be read maps here."
+        }
+      ],
+      "learningObjectives": [
+        "Predict whether a cross-origin browser request is sent directly, preflighted, or sent but blocked from being read",
+        "Explain why CORS does not stop non-browser clients or protect an endpoint from being called",
+        "Identify unsafe CORS configurations such as reflecting any Origin while allowing credentials"
+      ],
+      "recognitionSignals": [
+        "Access-Control-Allow-Origin, Access-Control-Allow-Credentials, or Access-Control-Allow-Headers response headers",
+        "CORS middleware or framework CORS configuration",
+        "OPTIONS preflight handlers",
+        "browser requests to another origin with credentials: 'include'"
+      ],
+      "misconceptionPatterns": [
+        "Believing CORS is a server-side access control that blocks unauthorized callers",
+        "Believing reflecting the request Origin with credentials allowed is a safe fix for a CORS error",
+        "Assuming a request whose response was blocked by CORS never reached or changed anything on the server"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare"],
+      "tags": ["http", "security", "browser"],
+      "version": 2
+    }
+  ]
+}

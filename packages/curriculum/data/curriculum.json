@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "domainFiles": [
+    "fundamentals.json",
+    "dsa.json",
+    "web.json",
+    "db.json",
+    "security.json",
+    "reliability.json",
+    "systems.json"
+  ]
+}

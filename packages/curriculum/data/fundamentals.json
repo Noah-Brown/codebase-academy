@@ -1,0 +1,279 @@
+{
+  "domain": {
+    "id": "fundamentals",
+    "title": "Programming fundamentals",
+    "summary": "The building blocks every program is made of: data, control flow, functions, state, errors, modules, and asynchronous work.",
+    "order": 0
+  },
+  "concepts": [
+    {
+      "id": "fundamentals.values-and-types",
+      "title": "Values and types",
+      "domain": "fundamentals",
+      "summary": "Programs manipulate values; types describe which values are allowed and which operations make sense on them.",
+      "difficulty": 1,
+      "operationalImportance": 0.3,
+      "prerequisites": [],
+      "related": [
+        {
+          "id": "security.input-validation",
+          "boundary": "Validating external data at runtime maps there; what the language's types guarantee maps here."
+        }
+      ],
+      "learningObjectives": [
+        "Distinguish primitive values from structured values such as objects and arrays",
+        "Explain why static type annotations and assertions are erased at runtime, and contrast them with runtime checks",
+        "Predict the result of common type coercions, numeric edge cases (NaN, floating-point rounding), and nullability checks"
+      ],
+      "recognitionSignals": [
+        "type assertions or non-null assertions (`as`, `!`, `as unknown as`) that override the checker",
+        "runtime conversions such as `Number()`, `parseInt`, `String()`, or `Boolean()`, and their failure values (NaN, empty string)",
+        "loose equality (`==`) or truthiness checks applied to values that may be 0, empty string, null, or undefined",
+        "nullable fields or optional values newly introduced or narrowed (`T | null`, Option/Maybe, nil checks)",
+        "discriminated unions or enums narrowed with typeof/instanceof/tag checks"
+      ],
+      "misconceptionPatterns": [
+        "Believing static type annotations still exist or are checked when the program runs",
+        "Treating null, undefined, empty string, and zero as interchangeable",
+        "Assuming a type assertion such as `as` converts a value rather than only silencing the type checker",
+        "Believing floating-point numbers represent decimal amounts such as 0.1 or currency exactly"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain"],
+      "tags": ["types", "language-basics"],
+      "version": 2
+    },
+    {
+      "id": "fundamentals.control-flow",
+      "title": "Control flow",
+      "domain": "fundamentals",
+      "summary": "Conditionals, loops, and early returns decide which statements run and in what order.",
+      "difficulty": 1,
+      "operationalImportance": 0.2,
+      "prerequisites": ["fundamentals.values-and-types"],
+      "learningObjectives": [
+        "Trace which branch of a conditional executes for given inputs",
+        "Explain how early returns and guard clauses change the reachable paths through a function",
+        "Identify off-by-one and non-terminating loop conditions"
+      ],
+      "recognitionSignals": [
+        "deeply nested or newly added conditional branches that change which path runs",
+        "switch/match over an enum or union without a default or exhaustiveness check",
+        "loop bounds or termination conditions (`<=` vs `<`, index arithmetic, while loops with a manual exit)",
+        "guard clauses with early return, continue, or break that skip later code"
+      ],
+      "misconceptionPatterns": [
+        "Assuming a JavaScript/C-style switch case without break stops at the end of that case",
+        "Believing a chain of conditionals covers every input when some inputs match no branch",
+        "Believing `if (value)` skips only null or undefined, when it also skips 0, empty string, and false"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain"],
+      "tags": ["language-basics"],
+      "version": 2
+    },
+    {
+      "id": "fundamentals.functions",
+      "title": "Functions and calls",
+      "domain": "fundamentals",
+      "summary": "Functions package behavior behind parameters and return values; calling one creates a new frame of execution.",
+      "difficulty": 1,
+      "operationalImportance": 0.2,
+      "prerequisites": ["fundamentals.control-flow"],
+      "learningObjectives": [
+        "Trace arguments into parameters and return values back to the caller",
+        "Explain the call stack and what happens when a function calls another",
+        "Distinguish pure functions from functions with side effects"
+      ],
+      "recognitionSignals": [
+        "changes to a function's parameters, defaults, or return type that affect its callers",
+        "functions with some code paths that return nothing (implicit undefined/None)",
+        "functions passed as arguments or returned as values (callbacks, handlers, strategies)",
+        "a function that both computes a result and performs side effects such as I/O or logging"
+      ],
+      "misconceptionPatterns": [
+        "Believing a block-bodied function such as `function f() { x + 1 }` or `() => { x + 1 }` returns its last expression, as a concise arrow body would",
+        "Assuming a function with side effects returns the same result every time it is called with the same arguments"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain"],
+      "tags": ["language-basics"],
+      "version": 2
+    },
+    {
+      "id": "fundamentals.scope-and-closures",
+      "title": "Scope and closures",
+      "domain": "fundamentals",
+      "summary": "Scope determines which names are visible where; closures let functions keep access to variables from where they were created.",
+      "difficulty": 2,
+      "operationalImportance": 0.3,
+      "prerequisites": ["fundamentals.functions"],
+      "learningObjectives": [
+        "Predict which binding a name refers to in nested scopes",
+        "Explain how a closure captures variables rather than values",
+        "Recognize stale-closure and module-level shared-state bugs"
+      ],
+      "recognitionSignals": [
+        "functions returned from or defined inside other functions",
+        "UI hooks or effects that capture props or state (e.g. React useEffect or useCallback)",
+        "module-level variables mutated by functions",
+        "event handlers or timers referencing outer variables"
+      ],
+      "misconceptionPatterns": [
+        "Believing a closure snapshots a variable's value when created, rather than keeping a live reference to the variable",
+        "Believing a callback created in an earlier render or call sees later state, when it closed over a binding that was replaced rather than reassigned",
+        "Assuming module-level state is per request on a server",
+        "Confusing block scope with function scope (e.g. `var` in loops shared across iterations)"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain", "compare"],
+      "tags": ["language-basics", "state"],
+      "version": 2
+    },
+    {
+      "id": "fundamentals.mutation-and-references",
+      "title": "Mutation and references",
+      "domain": "fundamentals",
+      "summary": "Some values are shared by reference; changing them in one place changes them everywhere they are referenced.",
+      "difficulty": 2,
+      "operationalImportance": 0.4,
+      "prerequisites": ["fundamentals.functions"],
+      "learningObjectives": [
+        "Predict when two variables refer to the same underlying object",
+        "Explain the difference between shallow and deep copies",
+        "Evaluate when immutability prevents a class of bugs"
+      ],
+      "recognitionSignals": [
+        "push, splice, sort, reverse, or direct property assignment on objects or arrays received from elsewhere",
+        "functions that modify their object or array arguments",
+        "spread syntax, structuredClone, or copy helpers used before modifying data",
+        "an existing object or array mutated and then passed to a state setter, cache, or store",
+        "readonly modifiers, Object.freeze, or immutable data structures"
+      ],
+      "misconceptionPatterns": [
+        "Believing spread syntax performs a deep copy",
+        "Assuming const makes an object immutable",
+        "Believing sort or reverse return a new array and leave the original unchanged",
+        "Assuming passing an object or array to a function gives the function its own copy"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain", "compare"],
+      "tags": ["state", "language-basics"],
+      "version": 2
+    },
+    {
+      "id": "fundamentals.error-handling",
+      "title": "Error handling",
+      "domain": "fundamentals",
+      "summary": "Errors signal that an operation could not complete; handling them well means deciding where to recover, report, or propagate.",
+      "difficulty": 2,
+      "operationalImportance": 0.6,
+      "prerequisites": ["fundamentals.functions"],
+      "learningObjectives": [
+        "Trace how a thrown error propagates up the call stack",
+        "Distinguish expected failures from programming bugs",
+        "Evaluate whether a catch block recovers, translates, or silently hides a failure"
+      ],
+      "recognitionSignals": [
+        "try/catch/finally blocks",
+        "custom error classes, result types, or errors returned as values (`if err != nil`, `Result`)",
+        "catch blocks that log and continue, return a default, or are empty",
+        "errors rethrown or wrapped, with or without the original cause"
+      ],
+      "misconceptionPatterns": [
+        "Believing catching an error means the failure was handled",
+        "Believing that throwing a new error in place of the original loses nothing useful for debugging",
+        "Assuming finally only runs on success"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain", "compare"],
+      "tags": ["errors", "reliability"],
+      "version": 2
+    },
+    {
+      "id": "fundamentals.modules",
+      "title": "Modules and boundaries",
+      "domain": "fundamentals",
+      "summary": "Modules group related code behind an explicit interface so the rest of a program depends on what it exports, not how it works.",
+      "difficulty": 2,
+      "operationalImportance": 0.3,
+      "prerequisites": ["fundamentals.functions"],
+      "learningObjectives": [
+        "Explain what a module's public interface is and why it should be small",
+        "Predict module initialization order and side effects at import time",
+        "Evaluate whether a dependency direction between modules makes sense"
+      ],
+      "recognitionSignals": [
+        "a new module, or a change to what an existing module exports",
+        "barrel/index files that re-export other modules",
+        "top-level code that runs on import (opening connections, reading env, registering handlers)",
+        "imports that reach into another module's internal files instead of its entry point",
+        "circular imports between files"
+      ],
+      "misconceptionPatterns": [
+        "Assuming importing a module has no side effects",
+        "Treating every exported symbol as a stable contract by accident",
+        "Believing circular imports are always harmless"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare"],
+      "tags": ["architecture"],
+      "version": 2
+    },
+    {
+      "id": "fundamentals.async-basics",
+      "title": "Synchronous vs. asynchronous work",
+      "domain": "fundamentals",
+      "summary": "Asynchronous code starts work that finishes later, letting a program wait on I/O without stopping everything else.",
+      "difficulty": 2,
+      "operationalImportance": 0.5,
+      "prerequisites": ["fundamentals.error-handling"],
+      "related": [
+        {
+          "id": "systems.concurrency",
+          "boundary": "Running several operations at once, and the races that creates, maps there."
+        }
+      ],
+      "learningObjectives": [
+        "Explain what it means for a program to wait on network or disk work",
+        "Predict execution order around await, promises, and callbacks",
+        "Identify an un-awaited promise and its consequences for errors and ordering"
+      ],
+      "recognitionSignals": [
+        "calls to async functions whose promise is not awaited, returned, or handled (floating promises)",
+        "async callbacks passed to APIs that ignore the returned promise, e.g. `array.forEach(async ...)` or event emitters",
+        "manually constructed promises or futures, promisify, or then/catch chains mixed with await",
+        "callback-style I/O APIs"
+      ],
+      "misconceptionPatterns": [
+        "Believing await blocks the whole process",
+        "Believing a surrounding try/catch will catch the rejection of a promise that is never awaited",
+        "Believing `forEach` or similar callback APIs wait for async callbacks to finish before continuing"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain", "compare"],
+      "tags": ["async", "concurrency"],
+      "version": 2
+    },
+    {
+      "id": "fundamentals.dates-and-time",
+      "title": "Dates, times, and time zones",
+      "domain": "fundamentals",
+      "summary": "An instant in time, a calendar date, and a local wall-clock time are different things; confusing them causes off-by-hours and off-by-a-day bugs.",
+      "difficulty": 2,
+      "operationalImportance": 0.5,
+      "prerequisites": ["fundamentals.values-and-types"],
+      "learningObjectives": [
+        "Distinguish an instant (UTC timestamp) from a calendar date and a local wall-clock time",
+        "Predict how a date is parsed, displayed, or compared across server and client time zones",
+        "Explain where time-zone conversion should happen when storing and displaying times"
+      ],
+      "recognitionSignals": [
+        "new Date(), Date.now(), or date parsing from strings",
+        "toISOString, toLocaleString, or date-library formatting and time-zone calls",
+        "timestamp vs timestamptz or date columns in schemas",
+        "date arithmetic such as adding days, start/end of day, or expiry comparisons"
+      ],
+      "misconceptionPatterns": [
+        "Believing a date-only string such as \"2024-03-10\" is parsed in local time by JavaScript's Date",
+        "Assuming every day has 24 hours in local time",
+        "Believing storing local time without a zone preserves the moment an event happened"
+      ],
+      "assessmentModes": ["recognize", "predict", "trace", "explain", "compare"],
+      "tags": ["language-basics", "data"],
+      "version": 2
+    }
+  ]
+}

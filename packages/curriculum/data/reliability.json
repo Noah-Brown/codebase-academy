@@ -1,0 +1,207 @@
+{
+  "domain": {
+    "id": "reliability",
+    "title": "Testing and reliability",
+    "summary": "Gaining confidence that code works before shipping, and keeping it working — observably and recoverably — once it runs.",
+    "order": 5
+  },
+  "concepts": [
+    {
+      "id": "reliability.test-boundaries",
+      "title": "Unit, integration, and end-to-end tests",
+      "domain": "reliability",
+      "summary": "Different test scopes buy different confidence at different costs; choosing the boundary is a design decision.",
+      "difficulty": 2,
+      "operationalImportance": 0.5,
+      "prerequisites": ["fundamentals.modules"],
+      "related": [
+        {
+          "id": "reliability.trustworthy-tests",
+          "boundary": "Whether a test can fail, and fails reliably, maps there; which scope a test exercises maps here."
+        }
+      ],
+      "learningObjectives": [
+        "Classify a test by the boundary it exercises",
+        "Explain what a given test would and would not catch",
+        "Choose the cheapest test scope that covers a specific risk"
+      ],
+      "recognitionSignals": [
+        "new tests or suites that start a real server, database, or test container",
+        "HTTP-level tests that drive routes through the app (e.g. supertest, httpx TestClient)",
+        "browser automation suites (Playwright, Cypress, Selenium)",
+        "test runner configuration that splits unit and integration suites or tags tests by scope"
+      ],
+      "misconceptionPatterns": [
+        "Believing end-to-end tests are always the best choice because they are the most realistic, so every edge case should be tested through the full stack",
+        "Assuming passing unit tests on both sides mean the components agree on the contract between them (payload shape, status codes, schema)",
+        "Believing a test's label (unit or integration) rather than what it actually executes determines what failures it can catch"
+      ],
+      "assessmentModes": ["recognize", "explain", "compare", "design"],
+      "tags": ["testing"],
+      "version": 2
+    },
+    {
+      "id": "reliability.test-doubles",
+      "title": "Test doubles",
+      "domain": "reliability",
+      "summary": "Mocks, stubs, fakes, and spies replace real dependencies in tests, trading realism for speed and control.",
+      "difficulty": 3,
+      "operationalImportance": 0.4,
+      "prerequisites": ["reliability.test-boundaries"],
+      "learningObjectives": [
+        "Explain what a given test double lets the test control or verify (canned responses, recorded calls, a working substitute)",
+        "Identify tests that pass only because a mock diverges from the real dependency",
+        "Decide when a fake or real dependency is better than a mock"
+      ],
+      "recognitionSignals": [
+        "module or dependency mocking calls (vi.mock, jest.mock, unittest.mock.patch, gomock)",
+        "HTTP interception or mocked clients and database layers (msw, nock, responses)",
+        "in-memory fake implementations of repositories, queues, or clocks",
+        "assertions on how many times or with what arguments a mock was called"
+      ],
+      "misconceptionPatterns": [
+        "Believing a heavily mocked test verifies integration behavior",
+        "Believing that verifying a mock was called proves the feature works, even when the outcome (return value, stored state) could be checked directly",
+        "Assuming a hand-written mock's responses still match the real dependency after that dependency changes",
+        "Believing a test still exercises real logic after the code under test has itself been mocked or stubbed"
+      ],
+      "assessmentModes": ["recognize", "explain", "compare", "design"],
+      "tags": ["testing"],
+      "version": 2
+    },
+    {
+      "id": "reliability.observability",
+      "title": "Logs, metrics, and traces",
+      "domain": "reliability",
+      "summary": "Structured logs, metrics, and traces let you understand what production is doing without attaching a debugger.",
+      "difficulty": 2,
+      "operationalImportance": 0.6,
+      "prerequisites": ["fundamentals.error-handling"],
+      "learningObjectives": [
+        "Explain what a structured log line should contain to be useful in an incident",
+        "Distinguish when to use a log, a metric, or a trace",
+        "Identify logging that leaks sensitive data or is too noisy to use"
+      ],
+      "recognitionSignals": [
+        "structured logger calls with contextual fields (pino, winston, structlog, slog)",
+        "request or correlation IDs attached to logs or propagated in headers",
+        "metrics counters, histograms, or timers",
+        "tracing spans or OpenTelemetry instrumentation",
+        "error reporting SDK calls such as Sentry.captureException"
+      ],
+      "misconceptionPatterns": [
+        "Believing logs are internal, so it is safe to log tokens, passwords, or full request bodies",
+        "Believing more log lines always improve debuggability",
+        "Believing counting or rate questions are best answered by searching logs rather than recording a metric",
+        "Assuming unbounded values such as user IDs or raw URLs are fine as metric labels"
+      ],
+      "assessmentModes": ["recognize", "explain", "compare", "design"],
+      "tags": ["observability", "operations"],
+      "version": 2
+    },
+    {
+      "id": "reliability.timeouts",
+      "title": "Timeouts",
+      "domain": "reliability",
+      "summary": "A timeout bounds how long code waits on something that may never answer, turning a hang into a handleable failure.",
+      "difficulty": 3,
+      "operationalImportance": 0.7,
+      "prerequisites": ["fundamentals.async-basics", "web.http-lifecycle"],
+      "related": [
+        {
+          "id": "web.retries",
+          "boundary": "Deciding whether and how to try again maps there; bounding a single wait maps here."
+        },
+        {
+          "id": "systems.distributed-failure",
+          "boundary": "Ambiguous outcomes across services and reconciliation map there."
+        }
+      ],
+      "learningObjectives": [
+        "Identify outbound calls with no timeout",
+        "Explain how a slow dependency without timeouts can exhaust a service",
+        "Design timeout budgets across nested calls"
+      ],
+      "recognitionSignals": [
+        "server-side calls to third-party APIs or internal services with no timeout or abort signal",
+        "AbortController, AbortSignal.timeout, or HTTP client timeout options",
+        "database statement, lock, or connection-acquire timeouts",
+        "Promise.race or equivalents (context.WithTimeout, asyncio.wait_for) used to bound a wait"
+      ],
+      "misconceptionPatterns": [
+        "Believing HTTP clients have sensible default timeouts",
+        "Believing Promise.race against a timer cancels the slower operation, when it keeps running and holding resources",
+        "Assuming aborting a request on the client stops work already running on the server or in the database",
+        "Believing an inner call's timeout can safely exceed the outer request's deadline because the caller will keep waiting"
+      ],
+      "assessmentModes": ["predict", "trace", "explain", "compare", "design"],
+      "tags": ["reliability", "operations"],
+      "version": 2
+    },
+    {
+      "id": "reliability.failure-recovery",
+      "title": "Failure recovery",
+      "domain": "reliability",
+      "summary": "When multi-step or background work fails partway, making the resulting state visible and recoverable: explicit failed states, bounded retries that end in a dead-letter or manual path, safe resumption, and honestly degraded responses.",
+      "difficulty": 4,
+      "operationalImportance": 0.8,
+      "prerequisites": ["web.idempotency", "db.transactions"],
+      "related": [
+        {
+          "id": "systems.distributed-failure",
+          "boundary": "Consistency across services (outbox, sagas, reconciliation) maps there; recovering failed work inside one application maps here."
+        }
+      ],
+      "learningObjectives": [
+        "Trace what state a workflow is left in when it fails at each step",
+        "Compare retrying, dead-lettering, and failing fast for a given failure",
+        "Design a recovery path for work that fails permanently"
+      ],
+      "recognitionSignals": [
+        "background job or queue consumer configuration with max attempts or retry limits",
+        "dead-letter queues, failed-job tables, or manual replay tooling",
+        "status moved to a failed or needs-attention state when a workflow step errors",
+        "catch branches that return cached, partial, or default responses when a dependency is down",
+        "circuit breaker or fallback wrappers around dependency calls"
+      ],
+      "misconceptionPatterns": [
+        "Assuming a failed job leaves no partial state",
+        "Believing enough retries will eventually succeed, so permanent failures never need a separate path",
+        "Believing silent fallbacks are safer than making degraded behavior visible to users and operators"
+      ],
+      "assessmentModes": ["trace", "explain", "compare", "design", "defend"],
+      "tags": ["reliability", "operations"],
+      "version": 2
+    },
+    {
+      "id": "reliability.trustworthy-tests",
+      "title": "Tests that can fail",
+      "domain": "reliability",
+      "summary": "A test is evidence only if it would fail when the behavior breaks and gives the same result on every run; weak assertions and nondeterminism turn tests into noise.",
+      "difficulty": 2,
+      "operationalImportance": 0.5,
+      "prerequisites": ["fundamentals.async-basics"],
+      "learningObjectives": [
+        "Predict whether a test would fail if the behavior it describes were broken",
+        "Identify sources of nondeterminism in a test: wall-clock time, randomness, execution order, shared state, and un-awaited async work",
+        "Explain why a regression test should be seen failing before the fix is applied"
+      ],
+      "recognitionSignals": [
+        "assertions that only check truthiness, that no error was thrown, or that a snapshot exists",
+        "async expectations or assertions that are not awaited",
+        "tests that read the current time, random values, or the network without controlling them (fake timers, seeded randomness)",
+        "retries, skips, or longer timeouts added to make a test pass",
+        "shared fixtures or database state not reset between tests"
+      ],
+      "misconceptionPatterns": [
+        "Believing high code coverage means the important behavior is tested",
+        "Believing a passing test is evidence of correctness even though it has never been seen to fail",
+        "Treating a flaky test as noise to retry or skip rather than a sign of a race or hidden dependency",
+        "Assuming tests run in a fixed order with isolated state"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare"],
+      "tags": ["testing"],
+      "version": 2
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "curriculum_concepts" ADD COLUMN "related" jsonb DEFAULT '[]'::jsonb NOT NULL;

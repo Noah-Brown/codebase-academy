@@ -1,0 +1,824 @@
+{
+  "id": "a0c1fe62-91a3-446d-8850-8122013c800b",
+  "prevId": "598be9df-5cf8-4cdd-a591-87889b82581f",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.curriculum_concepts": {
+      "name": "curriculum_concepts",
+      "schema": "",
+      "columns": {
+        "curriculum_version": {
+          "name": "curriculum_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domain_id": {
+          "name": "domain_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "difficulty": {
+          "name": "difficulty",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "operational_importance": {
+          "name": "operational_importance",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "learning_objectives": {
+          "name": "learning_objectives",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recognition_signals": {
+          "name": "recognition_signals",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "misconception_patterns": {
+          "name": "misconception_patterns",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assessment_modes": {
+          "name": "assessment_modes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "related": {
+          "name": "related",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "tags": {
+          "name": "tags",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "concept_version": {
+          "name": "concept_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "curriculum_concepts_curriculum_version_domain_id_curriculum_domains_curriculum_version_id_fk": {
+          "name": "curriculum_concepts_curriculum_version_domain_id_curriculum_domains_curriculum_version_id_fk",
+          "tableFrom": "curriculum_concepts",
+          "tableTo": "curriculum_domains",
+          "columnsFrom": [
+            "curriculum_version",
+            "domain_id"
+          ],
+          "columnsTo": [
+            "curriculum_version",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "curriculum_concepts_curriculum_version_id_pk": {
+          "name": "curriculum_concepts_curriculum_version_id_pk",
+          "columns": [
+            "curriculum_version",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "curriculum_concepts_difficulty_range": {
+          "name": "curriculum_concepts_difficulty_range",
+          "value": "\"curriculum_concepts\".\"difficulty\" between 1 and 5"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.curriculum_domains": {
+      "name": "curriculum_domains",
+      "schema": "",
+      "columns": {
+        "curriculum_version": {
+          "name": "curriculum_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "curriculum_domains_curriculum_version_curriculum_versions_version_fk": {
+          "name": "curriculum_domains_curriculum_version_curriculum_versions_version_fk",
+          "tableFrom": "curriculum_domains",
+          "tableTo": "curriculum_versions",
+          "columnsFrom": [
+            "curriculum_version"
+          ],
+          "columnsTo": [
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "curriculum_domains_curriculum_version_id_pk": {
+          "name": "curriculum_domains_curriculum_version_id_pk",
+          "columns": [
+            "curriculum_version",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.curriculum_prerequisites": {
+      "name": "curriculum_prerequisites",
+      "schema": "",
+      "columns": {
+        "curriculum_version": {
+          "name": "curriculum_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "concept_id": {
+          "name": "concept_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prerequisite_id": {
+          "name": "prerequisite_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "curriculum_prerequisites_curriculum_version_concept_id_curriculum_concepts_curriculum_version_id_fk": {
+          "name": "curriculum_prerequisites_curriculum_version_concept_id_curriculum_concepts_curriculum_version_id_fk",
+          "tableFrom": "curriculum_prerequisites",
+          "tableTo": "curriculum_concepts",
+          "columnsFrom": [
+            "curriculum_version",
+            "concept_id"
+          ],
+          "columnsTo": [
+            "curriculum_version",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "curriculum_prerequisites_curriculum_version_prerequisite_id_curriculum_concepts_curriculum_version_id_fk": {
+          "name": "curriculum_prerequisites_curriculum_version_prerequisite_id_curriculum_concepts_curriculum_version_id_fk",
+          "tableFrom": "curriculum_prerequisites",
+          "tableTo": "curriculum_concepts",
+          "columnsFrom": [
+            "curriculum_version",
+            "prerequisite_id"
+          ],
+          "columnsTo": [
+            "curriculum_version",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "curriculum_prerequisites_curriculum_version_concept_id_prerequisite_id_pk": {
+          "name": "curriculum_prerequisites_curriculum_version_concept_id_prerequisite_id_pk",
+          "columns": [
+            "curriculum_version",
+            "concept_id",
+            "prerequisite_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.curriculum_versions": {
+      "name": "curriculum_versions",
+      "schema": "",
+      "columns": {
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "content_hash": {
+          "name": "content_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "concept_count": {
+          "name": "concept_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "imported_at": {
+          "name": "imported_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.learner_concept_states": {
+      "name": "learner_concept_states",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "concept_id": {
+          "name": "concept_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "curriculum_version": {
+          "name": "curriculum_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prior_alpha": {
+          "name": "prior_alpha",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prior_beta": {
+          "name": "prior_beta",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "alpha": {
+          "name": "alpha",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beta": {
+          "name": "beta",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "evidence_count": {
+          "name": "evidence_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "evidence_weight": {
+          "name": "evidence_weight",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "session_ids": {
+          "name": "session_ids",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "demonstrated_modes": {
+          "name": "demonstrated_modes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "highest_mode_demonstrated": {
+          "name": "highest_mode_demonstrated",
+          "type": "assessment_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_assessed_at": {
+          "name": "last_assessed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "learner_concept_states_user_id_users_id_fk": {
+          "name": "learner_concept_states_user_id_users_id_fk",
+          "tableFrom": "learner_concept_states",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "learner_concept_states_curriculum_version_curriculum_versions_version_fk": {
+          "name": "learner_concept_states_curriculum_version_curriculum_versions_version_fk",
+          "tableFrom": "learner_concept_states",
+          "tableTo": "curriculum_versions",
+          "columnsFrom": [
+            "curriculum_version"
+          ],
+          "columnsTo": [
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "learner_concept_states_user_id_concept_id_pk": {
+          "name": "learner_concept_states_user_id_concept_id_pk",
+          "columns": [
+            "user_id",
+            "concept_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "learner_concept_states_positive_beta_params": {
+          "name": "learner_concept_states_positive_beta_params",
+          "value": "\"learner_concept_states\".\"alpha\" > 0 and \"learner_concept_states\".\"beta\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.mastery_events": {
+      "name": "mastery_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "mastery_events_sequence_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "9223372036854775807",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "concept_id": {
+          "name": "concept_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "curriculum_version": {
+          "name": "curriculum_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assessment_attempt_id": {
+          "name": "assessment_attempt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "evidence_kind": {
+          "name": "evidence_kind",
+          "type": "evidence_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assessment_mode": {
+          "name": "assessment_mode",
+          "type": "assessment_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "name": "score",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grader_confidence": {
+          "name": "grader_confidence",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_weight": {
+          "name": "base_weight",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confidence_factor": {
+          "name": "confidence_factor",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applied_weight": {
+          "name": "applied_weight",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "alpha_delta": {
+          "name": "alpha_delta",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beta_delta": {
+          "name": "beta_delta",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "alpha_before": {
+          "name": "alpha_before",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beta_before": {
+          "name": "beta_before",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "alpha_after": {
+          "name": "alpha_after",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beta_after": {
+          "name": "beta_after",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applied": {
+          "name": "applied",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "skip_reason": {
+          "name": "skip_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "mastery_events_user_concept_idx": {
+          "name": "mastery_events_user_concept_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "concept_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sequence",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "mastery_events_user_id_users_id_fk": {
+          "name": "mastery_events_user_id_users_id_fk",
+          "tableFrom": "mastery_events",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mastery_events_curriculum_version_concept_id_curriculum_concepts_curriculum_version_id_fk": {
+          "name": "mastery_events_curriculum_version_concept_id_curriculum_concepts_curriculum_version_id_fk",
+          "tableFrom": "mastery_events",
+          "tableTo": "curriculum_concepts",
+          "columnsFrom": [
+            "curriculum_version",
+            "concept_id"
+          ],
+          "columnsTo": [
+            "curriculum_version",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mastery_events_sequence_unique": {
+          "name": "mastery_events_sequence_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "sequence"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "mastery_events_score_range": {
+          "name": "mastery_events_score_range",
+          "value": "\"mastery_events\".\"score\" between 0 and 1"
+        },
+        "mastery_events_confidence_range": {
+          "name": "mastery_events_confidence_range",
+          "value": "\"mastery_events\".\"grader_confidence\" between 0 and 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "starting_level": {
+          "name": "starting_level",
+          "type": "starting_level",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.assessment_mode": {
+      "name": "assessment_mode",
+      "schema": "public",
+      "values": [
+        "recognize",
+        "predict",
+        "trace",
+        "explain",
+        "compare",
+        "design",
+        "defend"
+      ]
+    },
+    "public.evidence_kind": {
+      "name": "evidence_kind",
+      "schema": "public",
+      "values": [
+        "multiple_choice",
+        "prediction",
+        "trace",
+        "short_explanation",
+        "code_grounded_open_response",
+        "design_comparison",
+        "engineering_defense"
+      ]
+    },
+    "public.starting_level": {
+      "name": "starting_level",
+      "schema": "public",
+      "values": [
+        "novice",
+        "intermediate",
+        "advanced"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

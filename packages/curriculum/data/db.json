@@ -1,0 +1,298 @@
+{
+  "domain": {
+    "id": "db",
+    "title": "Databases",
+    "summary": "Modeling, querying, and changing persistent data correctly and efficiently, including under concurrency and schema change.",
+    "order": 3
+  },
+  "concepts": [
+    {
+      "id": "db.relational-modeling",
+      "title": "Relational modeling",
+      "domain": "db",
+      "summary": "Representing entities and their relationships as tables and rows so data stays consistent and queryable.",
+      "difficulty": 2,
+      "operationalImportance": 0.5,
+      "prerequisites": ["fundamentals.values-and-types"],
+      "learningObjectives": [
+        "Model one-to-many and many-to-many relationships as tables",
+        "Explain the tradeoff between normalization and duplication",
+        "Evaluate whether a JSON column is hiding data that should be relational"
+      ],
+      "recognitionSignals": [
+        "new tables or models, or new relations between them, added to a schema",
+        "join tables or many-to-many relation declarations",
+        "JSON/JSONB or document-style columns holding structured or list data",
+        "delimited strings stored in a single column to represent a list",
+        "the same field copied onto multiple tables"
+      ],
+      "misconceptionPatterns": [
+        "Believing a comma-separated string column is an adequate substitute for a related table",
+        "Believing full normalization is always best regardless of access patterns",
+        "Believing a JSON column costs nothing compared with real columns and relations, despite losing types, constraints, and efficient filtering"
+      ],
+      "assessmentModes": ["recognize", "explain", "compare", "design"],
+      "tags": ["databases", "data-modeling"],
+      "version": 2
+    },
+    {
+      "id": "db.keys-and-constraints",
+      "title": "Keys and constraints",
+      "domain": "db",
+      "summary": "Primary keys, foreign keys, unique, and check constraints let the database enforce invariants that application code can miss.",
+      "difficulty": 2,
+      "operationalImportance": 0.7,
+      "prerequisites": ["db.relational-modeling"],
+      "related": [
+        {
+          "id": "web.idempotency",
+          "boundary": "Duplicate deliveries of the same request or message map there; uniqueness a constraint can enforce maps here."
+        },
+        {
+          "id": "db.isolation-levels",
+          "boundary": "Read-modify-write of existing row values maps there."
+        }
+      ],
+      "learningObjectives": [
+        "Explain what each constraint type guarantees",
+        "Identify invariants enforced only in application code that race under concurrency",
+        "Predict the effect of ON DELETE behaviors on related rows"
+      ],
+      "recognitionSignals": [
+        "PRIMARY KEY, UNIQUE, or REFERENCES clauses",
+        "ORM unique or foreign-key declarations",
+        "ON DELETE CASCADE or SET NULL",
+        "an existence check before an insert on a value a UNIQUE constraint could enforce"
+      ],
+      "misconceptionPatterns": [
+        "Believing a pre-insert existence check guarantees uniqueness without a unique constraint",
+        "Believing ON DELETE CASCADE removes only the directly referencing rows, when it follows every cascading relationship recursively",
+        "Believing a natural value such as an email or username will never change and is therefore safe as a primary key or foreign-key target",
+        "Believing a UNIQUE constraint on a nullable column prevents multiple rows with NULL in that column"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare"],
+      "tags": ["databases", "data-integrity"],
+      "version": 2
+    },
+    {
+      "id": "db.joins",
+      "title": "Joins",
+      "domain": "db",
+      "summary": "Combining rows from related tables in one query, and understanding how join type changes which rows appear.",
+      "difficulty": 3,
+      "operationalImportance": 0.4,
+      "prerequisites": ["db.relational-modeling"],
+      "learningObjectives": [
+        "Predict the rows returned by inner versus left joins",
+        "Identify row multiplication from joining one-to-many relationships",
+        "Replace an N+1 query pattern with a join or batched query"
+      ],
+      "recognitionSignals": [
+        "JOIN clauses or ORM include/with relations",
+        "queries executed per item in a loop",
+        "DISTINCT added to hide duplicate rows",
+        "aggregations over joined tables"
+      ],
+      "misconceptionPatterns": [
+        "Believing a LEFT JOIN returns exactly one row per row of the left table",
+        "Believing a filter on the right-hand table behaves the same in WHERE as in the ON clause of a LEFT JOIN",
+        "Believing DISTINCT is a correct fix for duplicate rows caused by joining a one-to-many relationship",
+        "Assuming loading ORM relations for a list issues a single query"
+      ],
+      "assessmentModes": ["predict", "trace", "explain", "compare"],
+      "tags": ["databases", "sql"],
+      "version": 2
+    },
+    {
+      "id": "db.indexes",
+      "title": "Indexes",
+      "domain": "db",
+      "summary": "Auxiliary structures, usually B-trees, that make certain lookups fast at the cost of write overhead and storage.",
+      "difficulty": 3,
+      "operationalImportance": 0.6,
+      "prerequisites": ["db.keys-and-constraints", "dsa.complexity"],
+      "learningObjectives": [
+        "Explain how an index turns a table scan into a tree lookup",
+        "Predict whether a composite index can serve a given WHERE and ORDER BY",
+        "Evaluate the write and locking costs of adding an index to a large table"
+      ],
+      "recognitionSignals": [
+        "CREATE INDEX statements or ORM index declarations",
+        "composite or partial indexes",
+        "queries filtering or sorting on unindexed columns",
+        "migrations that add indexes to existing tables"
+      ],
+      "misconceptionPatterns": [
+        "Believing adding indexes is free because they only speed up reads",
+        "Believing a composite index on (a, b) can generally serve a query that filters or sorts only on b",
+        "Believing CREATE INDEX on a live table is non-blocking, when in Postgres a plain build blocks writes until it finishes (CONCURRENTLY avoids this but cannot run inside a transaction block)",
+        "Believing that declaring a foreign key automatically indexes the referencing column (Postgres does not; MySQL InnoDB does)"
+      ],
+      "assessmentModes": ["predict", "explain", "compare", "design", "defend"],
+      "tags": ["databases", "performance"],
+      "version": 2
+    },
+    {
+      "id": "db.transactions",
+      "title": "Transactions",
+      "domain": "db",
+      "summary": "Grouping several reads and writes so they commit together or not at all, keeping data consistent when something fails midway.",
+      "difficulty": 3,
+      "operationalImportance": 0.8,
+      "prerequisites": ["db.relational-modeling", "fundamentals.error-handling"],
+      "learningObjectives": [
+        "Identify multi-step writes that leave inconsistent data if interrupted",
+        "Explain atomicity and what a rollback undoes",
+        "Recognize side effects such as emails or HTTP calls that a transaction cannot roll back"
+      ],
+      "recognitionSignals": [
+        "BEGIN/COMMIT or db.transaction(...) blocks",
+        "several related inserts or updates in one handler",
+        "external API calls between database writes",
+        "manual compensation or cleanup code after failures"
+      ],
+      "misconceptionPatterns": [
+        "Believing consecutive write statements in one request handler are atomic without an explicit transaction",
+        "Believing a rollback also undoes emails, HTTP calls, or queue messages sent inside the transaction",
+        "Believing it is harmless to hold a transaction open across slow network calls, when it keeps locks and a pooled connection for the whole duration",
+        "Believing every query inside a transaction callback participates in the transaction, even when it uses the global client instead of the transaction handle"
+      ],
+      "assessmentModes": ["predict", "trace", "explain", "compare", "design"],
+      "tags": ["databases", "data-integrity"],
+      "version": 2
+    },
+    {
+      "id": "db.isolation-levels",
+      "title": "Isolation and concurrent writes",
+      "domain": "db",
+      "summary": "Isolation levels and row locks determine what concurrent transactions can see and overwrite.",
+      "difficulty": 4,
+      "operationalImportance": 0.8,
+      "prerequisites": ["db.transactions", "systems.concurrency"],
+      "learningObjectives": [
+        "Explain lost updates and write skew with a concrete interleaving",
+        "Predict what a second statement in the same transaction sees under READ COMMITTED versus REPEATABLE READ after a concurrent commit",
+        "Compare atomic conditional updates, optimistic version checks, SELECT FOR UPDATE, and serializable isolation with retries",
+        "Defend a concurrency-control choice for a specific read-modify-write workflow"
+      ],
+      "recognitionSignals": [
+        "read-modify-write of existing row values (balances, counters, stock) across separate statements",
+        "SELECT ... FOR UPDATE or version columns",
+        "isolation level configuration",
+        "retry-on-serialization-failure logic"
+      ],
+      "misconceptionPatterns": [
+        "Believing wrapping a read-modify-write in a transaction prevents lost updates at the default isolation level",
+        "Believing the default isolation level is serializable (Postgres defaults to READ COMMITTED; MySQL InnoDB to REPEATABLE READ)",
+        "Believing reading a value into application memory, changing it, and writing it back is as safe as an atomic update such as SET count = count + 1",
+        "Believing SELECT ... FOR UPDATE also prevents concurrent inserts of rows that did not exist when it ran",
+        "Believing serializable isolation never raises errors, so no retry logic is needed"
+      ],
+      "assessmentModes": ["predict", "explain", "compare", "design", "defend"],
+      "tags": ["databases", "concurrency", "data-integrity"],
+      "version": 2
+    },
+    {
+      "id": "db.migrations",
+      "title": "Schema migrations",
+      "domain": "db",
+      "summary": "Versioned, ordered schema changes that must run safely against live data and running application code.",
+      "difficulty": 3,
+      "operationalImportance": 0.7,
+      "prerequisites": ["db.keys-and-constraints"],
+      "learningObjectives": [
+        "Explain why migrations must be compatible with both old and new application versions during deploys",
+        "Identify destructive or long-locking migration steps",
+        "Design an expand-and-contract sequence for renaming a column"
+      ],
+      "recognitionSignals": [
+        "files in a migrations directory",
+        "ALTER TABLE, DROP COLUMN, or NOT NULL additions",
+        "data backfill scripts",
+        "ORM-generated migration SQL"
+      ],
+      "misconceptionPatterns": [
+        "Believing the migration and the new application code go live at the same instant, so old code never runs against the new schema",
+        "Believing a schema change that is logically quick is safe on a busy table, when an ALTER TABLE waiting for its exclusive lock can queue behind a long-running transaction and block all reads and writes on that table",
+        "Believing SET NOT NULL or adding a foreign key to a large existing table is a cheap metadata change, when it scans the table while holding a strong lock (NOT VALID then VALIDATE avoids the long lock)",
+        "Believing it is safe to edit a migration that has already been applied in another environment",
+        "Believing a down migration or deploy rollback restores data removed by dropping a column or table"
+      ],
+      "assessmentModes": ["predict", "explain", "compare", "design", "defend"],
+      "tags": ["databases", "delivery"],
+      "version": 2
+    },
+    {
+      "id": "db.query-performance",
+      "title": "Query performance",
+      "domain": "db",
+      "summary": "Reading query plans and access patterns to understand why a query is slow and what will fix it.",
+      "difficulty": 4,
+      "operationalImportance": 0.6,
+      "prerequisites": ["db.indexes", "db.joins"],
+      "learningObjectives": [
+        "Interpret the main parts of an EXPLAIN plan",
+        "Explain why a query that is fast in development is slow in production",
+        "Choose between indexing, rewriting, caching, or denormalizing for a slow query"
+      ],
+      "recognitionSignals": [
+        "EXPLAIN or EXPLAIN ANALYZE output",
+        "WHERE clauses that wrap a column in a function or cast, or use LIKE with a leading wildcard",
+        "COUNT, aggregation, or ORDER BY over large tables executed on every request",
+        "queries without LIMIT over tables that grow with usage",
+        "fetching many rows to filter, sort, or aggregate in application code instead of in SQL"
+      ],
+      "misconceptionPatterns": [
+        "Believing the ORM always generates efficient SQL",
+        "Assuming a query's speed on development data predicts its speed at production volume",
+        "Believing the planner will use an index whenever one exists on a filtered column",
+        "Believing EXPLAIN without ANALYZE reports actual row counts and timings",
+        "Believing a cache is the right first fix for a slow query whose plan has not been examined"
+      ],
+      "assessmentModes": ["predict", "explain", "compare", "design", "defend"],
+      "tags": ["databases", "performance"],
+      "version": 2
+    },
+    {
+      "id": "db.connection-pooling",
+      "title": "Database connections and pooling",
+      "domain": "db",
+      "summary": "Database connections are scarce, stateful server resources; pools and external poolers share a bounded number of them across requests, processes, and serverless instances.",
+      "difficulty": 3,
+      "operationalImportance": 0.7,
+      "prerequisites": ["db.transactions", "systems.concurrency"],
+      "related": [
+        {
+          "id": "systems.instance-lifecycle",
+          "boundary": "Instance start, freeze, and shutdown behavior maps there; connection counts and pooler semantics map here."
+        },
+        {
+          "id": "systems.bounded-concurrency",
+          "boundary": "Limiting in-flight application work maps there."
+        }
+      ],
+      "learningObjectives": [
+        "Explain why the database server limits connections and what each connection costs",
+        "Predict total connection demand from pool size multiplied by processes or serverless instances",
+        "Identify code that creates a new database client or pool per request instead of reusing one",
+        "Compare an in-process pool with an external transaction-mode pooler and name the session features the latter breaks"
+      ],
+      "recognitionSignals": [
+        "database client or pool constructed inside a request handler or function body",
+        "pool size, connection_limit, or max connections settings",
+        "connection strings or drivers targeting a connection pooler or serverless database proxy",
+        "global singleton caching of a database client to survive hot reload",
+        "handling of 'too many connections' or pool acquire timeout errors"
+      ],
+      "misconceptionPatterns": [
+        "Believing opening a new database connection for each request is cheap",
+        "Believing a larger pool always increases throughput",
+        "Believing a configured pool size applies to the whole application rather than to each process or serverless instance",
+        "Believing session state such as prepared statements, SET parameters, or advisory locks persists between queries behind a transaction-mode pooler"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare", "design"],
+      "tags": ["databases", "performance", "reliability"],
+      "version": 2
+    }
+  ]
+}

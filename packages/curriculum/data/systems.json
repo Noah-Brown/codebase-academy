@@ -1,0 +1,338 @@
+{
+  "domain": {
+    "id": "systems",
+    "title": "Systems and delivery",
+    "summary": "How software runs and ships: processes, networks, configuration, containers, pipelines, caches, concurrency, and distributed failure.",
+    "order": 6
+  },
+  "concepts": [
+    {
+      "id": "systems.networking-basics",
+      "title": "Networking basics",
+      "domain": "systems",
+      "summary": "DNS, TCP connections, TLS, and latency — the substrate every remote call depends on.",
+      "difficulty": 2,
+      "operationalImportance": 0.4,
+      "prerequisites": ["fundamentals.functions"],
+      "learningObjectives": [
+        "Trace what happens between resolving a hostname and receiving the first response byte",
+        "Explain why network calls are slower and less reliable than function calls",
+        "Identify connection reuse and pooling in client code"
+      ],
+      "recognitionSignals": [
+        "HTTP agent, keep-alive, or connection reuse options on outbound clients",
+        "TLS or certificate settings such as rejectUnauthorized, NODE_TLS_REJECT_UNAUTHORIZED, or custom CA bundles",
+        "host resolution details such as localhost vs service hostnames or IPv4/IPv6 selection",
+        "server listen address and port choices such as 0.0.0.0 vs 127.0.0.1"
+      ],
+      "misconceptionPatterns": [
+        "Treating a remote call like a local function call",
+        "Assuming the network is reliable and latency is zero",
+        "Disabling certificate verification to fix a TLS error"
+      ],
+      "assessmentModes": ["recognize", "trace", "explain", "compare"],
+      "tags": ["networking", "distributed-systems"],
+      "version": 2
+    },
+    {
+      "id": "systems.configuration",
+      "title": "Configuration",
+      "domain": "systems",
+      "summary": "Separating environment-specific settings from code, and validating them before the application relies on them.",
+      "difficulty": 2,
+      "operationalImportance": 0.5,
+      "prerequisites": ["fundamentals.modules"],
+      "learningObjectives": [
+        "Explain why configuration should differ by environment while code stays the same",
+        "Identify configuration read lazily in a way that fails late in production",
+        "Design fail-fast validation for required settings"
+      ],
+      "recognitionSignals": [
+        "environment variable reads (process.env, os.environ, os.Getenv)",
+        ".env files or config modules",
+        "feature flags",
+        "defaults applied when a variable is missing"
+      ],
+      "misconceptionPatterns": [
+        "Silently defaulting a required production setting",
+        "Assuming build-time and runtime environment variables behave the same",
+        "Scattering environment reads throughout the codebase"
+      ],
+      "assessmentModes": ["recognize", "explain", "compare", "design"],
+      "tags": ["configuration", "delivery"],
+      "version": 2
+    },
+    {
+      "id": "systems.concurrency",
+      "title": "Concurrency",
+      "domain": "systems",
+      "summary": "Making progress on several tasks over overlapping time periods, and the ordering and shared-state hazards that creates.",
+      "difficulty": 3,
+      "operationalImportance": 0.7,
+      "prerequisites": ["fundamentals.async-basics"],
+      "related": [
+        {
+          "id": "db.isolation-levels",
+          "boundary": "Races on database rows map there; races on in-process state map here."
+        }
+      ],
+      "learningObjectives": [
+        "Explain how Promise.all changes execution, latency, and error behavior compared to sequential awaits",
+        "Identify race conditions in interleaved async operations",
+        "Distinguish concurrency from parallelism"
+      ],
+      "recognitionSignals": [
+        "concurrent fan-out such as Promise.all/allSettled, asyncio.gather, or goroutines with WaitGroup/errgroup",
+        "multiple requests started before any of them is awaited",
+        "shared in-memory variables updated from concurrent async callbacks",
+        "check-then-act on in-process state with an await in between (database read-then-write maps to db.isolation-levels)"
+      ],
+      "misconceptionPatterns": [
+        "Believing Promise.all cancels remaining work when one promise rejects",
+        "Assuming single-threaded runtimes have no race conditions across awaits",
+        "Believing a promise's work starts only when it is awaited, so creating several promises before awaiting them runs them one at a time"
+      ],
+      "assessmentModes": ["predict", "trace", "explain", "compare", "design"],
+      "tags": ["concurrency", "async"],
+      "version": 2
+    },
+    {
+      "id": "systems.processes-and-threads",
+      "title": "Processes and threads",
+      "domain": "systems",
+      "summary": "Operating-system units of execution: isolated processes, shared-memory threads, and how runtimes like Node map work onto them.",
+      "difficulty": 3,
+      "operationalImportance": 0.6,
+      "prerequisites": ["systems.concurrency"],
+      "learningObjectives": [
+        "Explain how the event loop, worker threads, and separate processes differ",
+        "Predict what blocks the event loop and its effect on all requests",
+        "Choose between threads, processes, and separate services for CPU-heavy work"
+      ],
+      "recognitionSignals": [
+        "worker threads, subprocesses, or process pools (worker_threads, child_process, multiprocessing)",
+        "CPU-heavy synchronous work on a request path (large JSON parsing, hashing, image processing, regex on large input)",
+        "synchronous file-system or crypto APIs (readFileSync, pbkdf2Sync) inside request handlers",
+        "offloading CPU-bound work to a separate service or background job"
+      ],
+      "misconceptionPatterns": [
+        "Believing async makes CPU-bound work non-blocking",
+        "Believing worker threads or subprocesses share ordinary in-memory variables with the main thread",
+        "Believing one slow synchronous request only delays itself, rather than every request on that instance"
+      ],
+      "assessmentModes": ["predict", "explain", "compare", "design"],
+      "tags": ["concurrency", "operations"],
+      "version": 2
+    },
+    {
+      "id": "systems.bounded-concurrency",
+      "title": "Bounded concurrency",
+      "domain": "systems",
+      "summary": "Limiting how much work runs at once so a burst of tasks cannot overwhelm memory, connections, or downstream services.",
+      "difficulty": 4,
+      "operationalImportance": 0.8,
+      "prerequisites": ["systems.concurrency"],
+      "learningObjectives": [
+        "Explain under what workload unbounded Promise.all becomes dangerous",
+        "Implement or evaluate a concurrency limit using a pool or semaphore",
+        "Choose a limit based on downstream capacity and rate limits"
+      ],
+      "recognitionSignals": [
+        "Promise.all or equivalent fan-out over a user- or data-sized array",
+        "concurrency limiters such as p-limit, p-map's concurrency option, semaphores, or worker pools",
+        "concurrency settings on job-queue workers or consumers",
+        "splitting a large collection into fixed-size chunks specifically to cap in-flight work"
+      ],
+      "misconceptionPatterns": [
+        "Believing more concurrency always means more throughput",
+        "Ignoring downstream rate limits and pool sizes",
+        "Assuming arrays passed to Promise.all stay small"
+      ],
+      "assessmentModes": ["predict", "explain", "compare", "design", "defend"],
+      "tags": ["concurrency", "performance", "reliability"],
+      "version": 2
+    },
+    {
+      "id": "systems.backpressure",
+      "title": "Backpressure",
+      "domain": "systems",
+      "summary": "Signaling producers to slow down when consumers cannot keep up, instead of buffering until something falls over.",
+      "difficulty": 5,
+      "operationalImportance": 0.8,
+      "prerequisites": ["systems.bounded-concurrency", "dsa.stacks-and-queues"],
+      "learningObjectives": [
+        "Identify where unbounded buffering occurs between a producer and consumer",
+        "Compare dropping, blocking, and rejecting as responses to overload",
+        "Design backpressure for a streaming or queue-based pipeline"
+      ],
+      "recognitionSignals": [
+        "stream write() calls or ReadableStream controllers that ignore the drain event, write() return value, or desiredSize",
+        "in-memory arrays or queues that incoming requests or events push onto without a size limit",
+        "servers rejecting or shedding work (e.g. 429/503) when an internal queue or buffer is full",
+        "highWaterMark, max queue length, queue depth, or consumer lag settings and metrics"
+      ],
+      "misconceptionPatterns": [
+        "Believing a bigger buffer or queue fixes sustained overload rather than delaying the failure",
+        "Believing a concurrency limiter bounds memory, when tasks waiting for a slot accumulate in an unbounded pending queue",
+        "Assuming a stream write is flushed immediately, so its return value can be ignored"
+      ],
+      "assessmentModes": ["explain", "compare", "design", "defend"],
+      "tags": ["concurrency", "distributed-systems", "reliability"],
+      "version": 2
+    },
+    {
+      "id": "systems.caching",
+      "title": "Caching",
+      "domain": "systems",
+      "summary": "Keeping computed or fetched results closer to where they are needed, and deciding when they stop being true.",
+      "difficulty": 3,
+      "operationalImportance": 0.6,
+      "prerequisites": ["dsa.maps-and-sets", "web.http-lifecycle"],
+      "learningObjectives": [
+        "Explain cache hit, miss, TTL, and invalidation for a specific cache",
+        "Identify data that must never be cached across users",
+        "Compare caching layers such as HTTP, CDN, framework, and application memory"
+      ],
+      "recognitionSignals": [
+        "Cache-Control, Vary, or ETag headers",
+        "framework data-cache APIs such as Next.js \"use cache\", cacheTag/revalidateTag, revalidate, or fetch cache options",
+        "module-scope maps or LRU structures used as memoization caches",
+        "Redis or key-value store reads before database queries, with TTLs or explicit invalidation"
+      ],
+      "misconceptionPatterns": [
+        "Caching personalized responses under a shared key",
+        "Believing in-process caches are shared across instances",
+        "Adding a cache without an invalidation strategy"
+      ],
+      "assessmentModes": ["predict", "explain", "compare", "design", "defend"],
+      "tags": ["performance", "architecture"],
+      "version": 2
+    },
+    {
+      "id": "systems.containers",
+      "title": "Containers",
+      "domain": "systems",
+      "summary": "Packaging an application with its runtime dependencies into an image that runs the same way across environments.",
+      "difficulty": 3,
+      "operationalImportance": 0.4,
+      "prerequisites": ["systems.configuration"],
+      "learningObjectives": [
+        "Explain the difference between an image and a running container",
+        "Evaluate a Dockerfile for layer caching, image size, and secret exposure",
+        "Identify why a container behaves differently from the developer's machine"
+      ],
+      "recognitionSignals": [
+        "container build or compose files (Dockerfile, Containerfile, compose.yaml)",
+        "multi-stage builds",
+        "container environment variables and exposed ports",
+        "health checks"
+      ],
+      "misconceptionPatterns": [
+        "Believing containers provide strong security isolation by default, when they share the host kernel",
+        "Believing a secret passed via ARG/ENV or deleted in a later RUN step is gone from the final image",
+        "Assuming running as root inside a container is harmless because the container is isolated",
+        "Assuming the app will stop cleanly on SIGTERM when it runs as PID 1 behind a shell-form CMD or without its own signal handler"
+      ],
+      "assessmentModes": ["recognize", "explain", "compare", "design"],
+      "tags": ["delivery", "operations"],
+      "version": 2
+    },
+    {
+      "id": "systems.ci-cd",
+      "title": "CI/CD pipelines",
+      "domain": "systems",
+      "summary": "Automating build, test, and deploy steps so every change reaches production through the same verified path.",
+      "difficulty": 3,
+      "operationalImportance": 0.5,
+      "prerequisites": ["security.secrets-management"],
+      "learningObjectives": [
+        "Trace what a pipeline runs for a pull request versus a merge to main",
+        "Identify pipeline steps that expose secrets to untrusted code",
+        "Design a deploy sequence that supports rollback"
+      ],
+      "recognitionSignals": [
+        "CI configuration files (.github/workflows, .gitlab-ci.yml, CircleCI config)",
+        "build, test, and deploy job definitions",
+        "secrets referenced in pipeline configuration",
+        "pull_request_target or workflow triggers"
+      ],
+      "misconceptionPatterns": [
+        "Believing fork pull requests can never reach repository secrets, when pull_request_target and workflow_run run in the base repository's context with secrets and its GITHUB_TOKEN",
+        "Believing a green pipeline means the deploy is safe",
+        "Believing a version tag such as @v4 on a third-party action is immutable, so pinning to a full commit SHA is unnecessary"
+      ],
+      "assessmentModes": ["recognize", "trace", "explain", "design"],
+      "tags": ["delivery", "security"],
+      "version": 2
+    },
+    {
+      "id": "systems.distributed-failure",
+      "title": "Distributed failure",
+      "domain": "systems",
+      "summary": "In systems spanning multiple processes and machines, partial failure, duplication, and ambiguous outcomes are normal, not exceptional.",
+      "difficulty": 5,
+      "operationalImportance": 0.9,
+      "prerequisites": ["reliability.failure-recovery"],
+      "related": [
+        {
+          "id": "db.transactions",
+          "boundary": "Atomic writes within a single database map there."
+        }
+      ],
+      "learningObjectives": [
+        "Explain why a remote call can have three outcomes: success, failure, or unknown",
+        "Analyze a workflow spanning a database and an external service for inconsistency windows",
+        "Defend a design such as an outbox, saga, or reconciliation job for a specific failure mode"
+      ],
+      "recognitionSignals": [
+        "a database write and an external API call or event publish in the same code path",
+        "external calls or message publishes made inside a database transaction",
+        "outbox tables, saga steps, or compensating actions",
+        "reconciliation or sync jobs comparing local state with a third party"
+      ],
+      "misconceptionPatterns": [
+        "Believing a database transaction also makes an API call or message publish made inside it atomic with the write",
+        "Assuming events and webhooks arrive in the order they were produced",
+        "Believing a committed local write will reach downstream services without a durable handoff such as an outbox or reconciliation"
+      ],
+      "assessmentModes": ["explain", "compare", "design", "defend"],
+      "tags": ["distributed-systems", "reliability", "data-integrity"],
+      "version": 2
+    },
+    {
+      "id": "systems.instance-lifecycle",
+      "title": "Instances and runtime lifecycle",
+      "domain": "systems",
+      "summary": "Production code runs in many replaceable instances — long-running servers, serverless functions, or containers — that start cold, get frozen or terminated, and share nothing in memory.",
+      "difficulty": 3,
+      "operationalImportance": 0.7,
+      "prerequisites": ["fundamentals.async-basics", "web.http-lifecycle"],
+      "related": [
+        {
+          "id": "db.connection-pooling",
+          "boundary": "Connection counts per instance and pooler behavior map there."
+        }
+      ],
+      "learningObjectives": [
+        "Predict whether work started after a response is returned will complete on a serverless versus a long-running runtime",
+        "Identify module-level or in-memory state that breaks when requests are served by different instances",
+        "Design graceful shutdown that stops accepting work and drains in-flight requests on a termination signal"
+      ],
+      "recognitionSignals": [
+        "un-awaited promises or background work after returning a response, or waitUntil/after() style APIs",
+        "module-scope variables used as counters, rate limiters, sessions, or caches",
+        "expensive initialization at module scope reused across warm invocations (SDK clients, config loading)",
+        "SIGTERM/SIGINT handlers, server.close, or shutdown hooks",
+        "runtime or deployment settings such as edge vs Node runtime, max function duration, or instance counts"
+      ],
+      "misconceptionPatterns": [
+        "Believing a serverless function keeps running un-awaited work after the response has been returned",
+        "Assuming module-level state persists and is shared across all requests in production",
+        "Assuming a process gets unlimited time to finish work after receiving SIGTERM"
+      ],
+      "assessmentModes": ["recognize", "predict", "explain", "compare", "design"],
+      "tags": ["operations", "reliability", "delivery"],
+      "version": 2
+    }
+  ]
+}
