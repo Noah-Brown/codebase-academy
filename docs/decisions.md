@@ -131,18 +131,16 @@ With no evidence, the same concept therefore gets different depths for different
   the **stored** deltas rather than today's config. Changing weights later doesn't rewrite history.
 - Mastery events carry the curriculum version and have a composite foreign key to that version's concept.
 
-## D12. Users table shaped for Auth.js
+## D12. Users table shaped for the auth library
 
-`users` uses text IDs and the column names of the Auth.js Drizzle adapter (`name`, `email`,
-`email_verified`, `image`). Milestone 2 can then add `accounts` and `sessions` without reshaping it.
-`starting_level` stays null until onboarding.
+`users` uses text IDs and the column names an auth adapter expects (`name`, `email`, `email_verified`,
+`image`). It was first shaped for Auth.js; Milestone 2 adopted Better Auth instead (D19), which required
+`email` to be non-null and `email_verified` to become a boolean. `starting_level` stays null until onboarding.
 
-## D13. Jobs **(delegated, deferred)**
+## D13. Jobs **(delegated)**
 
-A `JobQueue` interface with idempotency keys lives in `@academy/shared`. Nothing enqueues work before
-Milestone 2. The planned implementation is a Postgres-backed queue (pg-boss), which fits the "no extra
-infrastructure" goal. The worker already boots, validates its environment, pings Postgres, and shuts down
-cleanly on SIGINT and SIGTERM.
+A `JobQueue` interface with idempotency keys lives in `@academy/shared`. The Milestone 2 implementation is
+a Postgres table queue rather than pg-boss; see D20.
 
 ## D14. Logging without private code
 
@@ -185,6 +183,22 @@ duplicates, warns if also a prerequisite) and never used in ranking or cycle che
 Readiness is averaged over _direct_ prerequisites, so an edge already implied through another
 prerequisite silently re-weights a concept. `validateCurriculum` warns with
 `redundant_transitive_prerequisite`, and the seed-curriculum test requires zero warnings.
+
+## D19. Better Auth instead of Auth.js
+
+The brief names Auth.js. Its v5 line never left beta (5.0.0-beta.32 in 2026) and its maintainers moved to
+Better Auth, so sign-in uses Better Auth 1.7 with the GitHub provider, backed by our Drizzle schema. The
+product owner chose this after the tradeoff was laid out. OAuth tokens are stored encrypted
+(`account.encryptOAuthTokens`). The stored GitHub user token is used only to ask GitHub which installations
+a user may link. **Revisit** if Better Auth's Drizzle support or Next.js integration lags a major release.
+
+## D20. A Postgres table queue instead of pg-boss **(delegated)**
+
+Jobs are rows in a `jobs` table, claimed with `FOR UPDATE SKIP LOCKED`, with a unique idempotency key,
+leases, and exponential backoff. pg-boss was the earlier plan (D13), but it needs a real connection pool and
+features PGlite cannot provide in tests. The table queue is small, fully covered by PGlite tests (including
+concurrent claims), and needs no extra infrastructure. **Revisit** when job volume needs cron schedules,
+fan-out, or dedicated queue monitoring.
 
 ## Deferred on purpose
 

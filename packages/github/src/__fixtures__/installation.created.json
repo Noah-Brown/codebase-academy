@@ -1,0 +1,41 @@
+{
+  "action": "created",
+  "installation": {
+    "id": 12345678,
+    "account": {
+      "login": "octo-org",
+      "id": 1001,
+      "node_id": "O_kgDOA",
+      "type": "Organization",
+      "site_admin": false
+    },
+    "repository_selection": "selected",
+    "app_id": 424242,
+    "app_slug": "codebase-academy",
+    "target_id": 1001,
+    "target_type": "Organization",
+    "permissions": { "contents": "read", "metadata": "read", "pull_requests": "read" },
+    "events": ["pull_request"],
+    "created_at": "2026-09-01T12:00:00Z",
+    "updated_at": "2026-09-01T12:00:00Z",
+    "suspended_at": null
+  },
+  "repositories": [
+    {
+      "id": 555001,
+      "node_id": "R_kgDOB",
+      "name": "api",
+      "full_name": "octo-org/api",
+      "private": true
+    },
+    {
+      "id": 555002,
+      "node_id": "R_kgDOC",
+      "name": "web",
+      "full_name": "octo-org/web",
+      "private": false
+    }
+  ],
+  "requester": null,
+  "sender": { "login": "octocat", "id": 2002, "type": "User" }
+}

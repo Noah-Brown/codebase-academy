@@ -48,16 +48,22 @@ Later milestones replace the fixture inputs one at a time without changing the c
 **Exit criterion met:** given mappings and a learner state, the system selects a lesson and explains why
 (`selection.test.ts`, "payment-retry fixture").
 
-## Milestone 2: GitHub ingestion (next)
+## Milestone 2: GitHub ingestion (code complete; live run pending)
 
-1. Auth.js with the GitHub provider, using the GitHub App's OAuth client. Adds `accounts` and `sessions` tables.
-2. Onboarding: choose a starting level, which calls `initializeLearner`.
-3. GitHub App installation callback and webhook (signature verification). Tables: `github_installations`, `repositories`.
-4. Short-lived installation tokens on demand; nothing long-lived stored.
-5. List repositories and open PRs.
-6. `pr_analyses` keyed by `(repository, PR number, head SHA, analyzer version)`, plus a durable job queue behind `JobQueue`.
-7. Context builder: patches, bounded surrounding lines, manifest files, token budgets, skip lists for generated, lock, vendored, and binary files, and secret redaction.
-8. Tenant scoping on every repository-derived lookup, with tests.
+Design and contracts: [`milestone-2-design.md`](./milestone-2-design.md).
+
+- [x] Sign-in with GitHub via Better Auth (D19), OAuth tokens encrypted at rest; `/setup` lists missing settings
+- [x] Onboarding: choose a starting level, which calls `initializeLearner`
+- [x] GitHub App install callback that links only installations GitHub lists for the user; webhook with signature verification
+- [x] Short-lived installation tokens on demand, cached in memory only
+- [x] Repositories and open pull requests pages
+- [x] `pr_analyses` idempotent per `(repository, PR number, head SHA, analyzer version)`; Postgres job queue with leases and backoff (D20)
+- [x] Context builder: patches, surrounding lines, manifests, token budgets, skip lists, secret redaction
+- [x] Tenant scoping on every repository-derived lookup, with tests
+- [ ] Live run: install the app on a real repository, analyze a real pull request
+
+**Exit criterion:** a real PR becomes a normalized, safely budgeted analysis context. Every step is covered
+by tests against GitHub fakes and PGlite; the remaining check is the live run above.
 
 ### Credentials and configuration needed for Milestone 2
 
@@ -76,6 +82,8 @@ Later milestones replace the fixture inputs one at a time without changing the c
 GitHub App settings:
 
 - **Callback URL:** `http://localhost:3000/api/auth/callback/github`
+- **Request user authorization (OAuth) during installation:** enabled
+- **Setup URL:** `http://localhost:3000/api/github/install/callback` (with **Redirect on update** enabled)
 - **Webhook URL:** `<tunnel>/api/github/webhook`
 - **Repository permissions** (least privilege, read-only):
   - Metadata: Read

@@ -12,8 +12,11 @@
   "dependencies": {
     "@academy/curriculum": "*",
     "@academy/db": "*",
+    "@academy/github": "^0.0.0",
     "@academy/learning": "*",
     "@academy/shared": "*",
+    "better-auth": "^1.7.4",
+    "drizzle-orm": "^0.45.2",
     "next": "16.3.5",
     "react": "19.3.0",
     "react-dom": "19.3.0"

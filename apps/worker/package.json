@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@academy/db": "*",
-    "@academy/shared": "*"
+    "@academy/github": "^0.0.0",
+    "@academy/shared": "*",
+    "drizzle-orm": "^0.45.2"
   }
 }

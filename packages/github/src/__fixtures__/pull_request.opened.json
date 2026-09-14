@@ -1,0 +1,47 @@
+{
+  "action": "opened",
+  "number": 42,
+  "pull_request": {
+    "url": "https://api.github.com/repos/octo-org/api/pulls/42",
+    "id": 9000042,
+    "html_url": "https://github.com/octo-org/api/pull/42",
+    "number": 42,
+    "state": "open",
+    "locked": false,
+    "title": "Add retry with backoff to webhook delivery",
+    "user": { "login": "octocat", "id": 2002, "type": "User" },
+    "body": "This adds retries. Private details that must not be kept.",
+    "created_at": "2026-09-01T12:00:00Z",
+    "updated_at": "2026-09-01T12:05:00Z",
+    "closed_at": null,
+    "merged_at": null,
+    "draft": false,
+    "head": {
+      "label": "octocat:retry-backoff",
+      "ref": "retry-backoff",
+      "sha": "1f2e3d4c5b6a79881f2e3d4c5b6a79881f2e3d4c",
+      "repo": { "id": 555001, "name": "api", "full_name": "octo-org/api" }
+    },
+    "base": {
+      "label": "octo-org:main",
+      "ref": "main",
+      "sha": "0a1b2c3d4e5f60710a1b2c3d4e5f60710a1b2c3d",
+      "repo": { "id": 555001, "name": "api", "full_name": "octo-org/api" }
+    },
+    "merged": false,
+    "additions": 120,
+    "deletions": 14,
+    "changed_files": 5
+  },
+  "repository": {
+    "id": 555001,
+    "node_id": "R_kgDOB",
+    "name": "api",
+    "full_name": "octo-org/api",
+    "private": true,
+    "owner": { "login": "octo-org", "id": 1001, "type": "Organization" },
+    "default_branch": "main"
+  },
+  "installation": { "id": 12345678, "node_id": "MDIzOkludGVncmF0aW9uSW5zdGFsbGF0aW9uMTIzNDU2Nzg=" },
+  "sender": { "login": "octocat", "id": 2002, "type": "User" }
+}

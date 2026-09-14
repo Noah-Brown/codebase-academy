@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SignOutButton } from "@/components/auth-buttons";
+import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,7 +9,8 @@ export const metadata: Metadata = {
   description: "Learn software engineering through the code you are shipping.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser().catch(() => null);
   return (
     <html lang="en">
       <body>
@@ -16,7 +19,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="font-semibold tracking-tight">
               Codebase Academy
             </Link>
-            <nav className="flex gap-5 text-sm text-stone-600 dark:text-stone-400">
+            <nav className="flex flex-wrap items-center gap-5 text-sm text-stone-600 dark:text-stone-400">
+              {user && (
+                <Link
+                  href="/repositories"
+                  className="hover:text-stone-900 dark:hover:text-stone-100"
+                >
+                  Repositories
+                </Link>
+              )}
               <Link href="/curriculum" className="hover:text-stone-900 dark:hover:text-stone-100">
                 Skill map
               </Link>
@@ -26,6 +37,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               >
                 Selection demo
               </Link>
+              {user ? (
+                <SignOutButton />
+              ) : (
+                <Link href="/onboarding" className="hover:text-stone-900 dark:hover:text-stone-100">
+                  Sign in
+                </Link>
+              )}
             </nav>
           </header>
           <main className="flex-1 pb-16">{children}</main>
