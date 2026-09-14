@@ -7,9 +7,9 @@ model decide _what_ you should learn next. Your current code supplies the exampl
 
 > Working title. Product brief: [`docs/product-handoff.md`](docs/product-handoff.md)
 
-**Status:** Milestones 0–1 are complete. The foundation, the curriculum, the learner model, and lesson
-ranking are built and tested. GitHub ingestion (Milestone 2) is next; see
-[`docs/implementation-plan.md`](docs/implementation-plan.md).
+**Status:** Milestones 0–1 are complete, and Milestone 2 (GitHub ingestion) is code-complete and tested
+against GitHub fakes; a live run against a real GitHub App is next. See
+[`docs/implementation-plan.md`](docs/implementation-plan.md) and [`docs/milestone-2-design.md`](docs/milestone-2-design.md).
 
 ## Requirements
 
@@ -32,8 +32,9 @@ Run things:
 
 ```sh
 npm run dev                       # web app → http://localhost:3000
-npm run worker                    # background worker (no jobs registered until Milestone 2)
+npm run worker                    # background worker: builds pull request analysis contexts
 curl localhost:3000/api/health    # {"status":"ok","database":"ok"}
+open http://localhost:3000/setup   # which settings are still missing (names only)
 ```
 
 ## Commands
@@ -53,14 +54,14 @@ curl localhost:3000/api/health    # {"status":"ok","database":"ok"}
 
 ```text
 apps/
-  web/          Next.js UI + HTTP routes (/, /curriculum, /dev/selection, /api/health)
-  worker/       Background jobs (boots, checks DB; handlers from Milestone 2)
+  web/          Next.js UI + HTTP routes: sign-in, onboarding, repositories, analyses, GitHub webhook
+  worker/       Background jobs (Postgres queue): pull request analysis
 packages/
   curriculum/   Curriculum schema, graph validation, seed data (data/*.json)
   learning/     Mastery model, status labels, lesson ranking. Pure functions.
   db/           Drizzle schema, migrations, repositories, PGlite test harness
   shared/       Env validation, redacting logger, job interface
-  github/       GitHub App boundary (Milestone 2)
+  github/       GitHub App client, webhook verification, analysis context builder
   ai/           Model-provider boundary (Milestone 3)
 docs/
   product-handoff.md      The product brief

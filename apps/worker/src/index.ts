@@ -1,17 +1,22 @@
 /**
- * Background worker. Milestone 0 proves the process boots, validates its
- * configuration, reaches Postgres, and shuts down cleanly. PR analysis and
- * lesson-generation handlers register here from Milestone 2 onward.
+ * Background worker: boots, validates configuration, reaches Postgres, processes
+ * queued jobs, and shuts down cleanly (finishing the job in flight).
  */
-import { createDatabase, pingDatabase } from "@academy/db";
-import { createLogger, databaseEnvSchema, parseEnv, type JobHandler } from "@academy/shared";
+import { createDatabase, createPgJobQueue, pingDatabase } from "@academy/db";
+import { createGitHubApp } from "@academy/github";
+import {
+  createLogger,
+  databaseEnvSchema,
+  githubAppEnvSchema,
+  invalidEnvKeys,
+  parseEnv,
+} from "@academy/shared";
+import { PR_ANALYSIS_QUEUE, createPrAnalysisHandler } from "./pr-analysis";
 
 const env = parseEnv(databaseEnvSchema);
 const log = createLogger({ level: env.LOG_LEVEL, bindings: { service: "worker" } });
 
-const handlers: Record<string, JobHandler<unknown>> = {};
-
-const { db, close } = createDatabase(env.DATABASE_URL, { maxConnections: 2 });
+const { db, close } = createDatabase(env.DATABASE_URL, { maxConnections: 4 });
 
 try {
   await pingDatabase(db);
@@ -21,16 +26,32 @@ try {
   process.exit(1);
 }
 
-log.info("worker started", { jobs: Object.keys(handlers) });
+const queue = createPgJobQueue(db, { logger: log });
+const registered: string[] = [];
 
-const heartbeat = setInterval(() => log.debug("heartbeat"), 60_000);
+const missingGitHub = invalidEnvKeys(githubAppEnvSchema);
+if (missingGitHub.length > 0) {
+  log.warn("GitHub App not configured; pull request analysis is disabled", {
+    missing: missingGitHub,
+  });
+} else {
+  const github = parseEnv(githubAppEnvSchema);
+  const app = createGitHubApp({
+    appId: github.GITHUB_APP_ID,
+    privateKey: github.GITHUB_APP_PRIVATE_KEY,
+  });
+  await queue.work(PR_ANALYSIS_QUEUE, createPrAnalysisHandler({ db, app, log }));
+  registered.push(PR_ANALYSIS_QUEUE);
+}
+
+log.info("worker started", { queues: registered });
 
 let stopping = false;
 async function shutdown(signal: string) {
   if (stopping) return;
   stopping = true;
   log.info("worker stopping", { signal });
-  clearInterval(heartbeat);
+  await queue.stop();
   await close();
   process.exit(0);
 }

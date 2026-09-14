@@ -1,0 +1,21 @@
+{
+  "action": "added",
+  "installation": {
+    "id": 12345678,
+    "account": { "login": "octo-org", "id": 1001, "type": "Organization" },
+    "repository_selection": "selected"
+  },
+  "repository_selection": "selected",
+  "repositories_added": [
+    {
+      "id": 555003,
+      "node_id": "R_kgDOD",
+      "name": "worker",
+      "full_name": "octo-org/worker",
+      "private": true
+    }
+  ],
+  "repositories_removed": [],
+  "requester": null,
+  "sender": { "login": "octocat", "id": 2002, "type": "User" }
+}

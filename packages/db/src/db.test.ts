@@ -17,11 +17,16 @@ import {
   recordAssessmentEvidence,
   replayLearnerConceptState,
 } from "./learner-repository";
+import { linkVerifiedUserInstallation, upsertInstallation } from "./github-repository";
 import {
+  accounts,
   curriculumConcepts,
   curriculumPrerequisites,
+  githubInstallations,
   learnerConceptStates,
   masteryEvents,
+  sessions,
+  userInstallations,
   users,
 } from "./schema";
 import { createTestDatabase } from "./testing";
@@ -225,7 +230,10 @@ describe("recording assessment evidence", () => {
   });
 
   it("requires an initialized learner", async () => {
-    const [stranger] = await handle.db.insert(users).values({ name: "No onboarding" }).returning();
+    const [stranger] = await handle.db
+      .insert(users)
+      .values({ name: "No onboarding", email: `${crypto.randomUUID()}@example.test` })
+      .returning();
     await expect(
       recordAssessmentEvidence(handle.db, {
         userId: stranger!.id,
@@ -287,5 +295,58 @@ describe("database invariants", () => {
     await handle.db.delete(users).where(eq(users.id, userId));
     expect(await getMasteryEvents(handle.db, userId, "web.idempotency")).toEqual([]);
     expect(await getLearnerStates(handle.db, userId)).toEqual([]);
+  });
+
+  it("stores Better Auth rows and cascades them, and installation links, on user deletion", async () => {
+    const now = new Date();
+    const [user] = await handle.db.select().from(users).where(eq(users.id, userId));
+    expect(user!.emailVerified).toBe(false);
+
+    await handle.db.insert(sessions).values({
+      id: crypto.randomUUID(),
+      token: crypto.randomUUID(),
+      userId,
+      expiresAt: new Date(now.getTime() + 3_600_000),
+      createdAt: now,
+      updatedAt: now,
+    });
+    await handle.db.insert(accounts).values({
+      id: crypto.randomUUID(),
+      accountId: "12345",
+      providerId: "github",
+      userId,
+      accessToken: "gho_test",
+      createdAt: now,
+      updatedAt: now,
+    });
+    const installationId = 424242;
+    await upsertInstallation(handle.db, {
+      id: installationId,
+      accountLogin: "acme",
+      accountType: "User",
+    });
+    await linkVerifiedUserInstallation(handle.db, { userId, installationId });
+
+    await handle.db.delete(users).where(eq(users.id, userId));
+
+    for (const table of [
+      sessions,
+      accounts,
+      userInstallations,
+      learnerConceptStates,
+      masteryEvents,
+    ]) {
+      const [row] = await handle.db
+        .select({ n: count() })
+        .from(table)
+        .where(eq(table.userId, userId));
+      expect(row!.n).toBe(0);
+    }
+    // Installations are global and survive.
+    const [installation] = await handle.db
+      .select({ n: count() })
+      .from(githubInstallations)
+      .where(eq(githubInstallations.id, installationId));
+    expect(installation!.n).toBe(1);
   });
 });
