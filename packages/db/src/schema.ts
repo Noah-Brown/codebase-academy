@@ -1,5 +1,10 @@
 import { ASSESSMENT_MODES, type AssessmentMode } from "@academy/curriculum";
-import { EVIDENCE_KINDS, STARTING_LEVELS } from "@academy/learning";
+import {
+  EVIDENCE_KINDS,
+  LESSON_DEPTHS,
+  STARTING_LEVELS,
+  type MappedConcept,
+} from "@academy/learning";
 import { sql } from "drizzle-orm";
 import {
   bigint,
@@ -414,5 +419,94 @@ export const jobs = pgTable(
     index("jobs_claim_idx").on(t.queue, t.status, t.runAfter),
     check("jobs_status_valid", sql`${t.status} in (${inList(JOB_STATUSES)})`),
     check("jobs_max_attempts_positive", sql`${t.maxAttempts} >= 1`),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Concept mapping (Milestone 3). Tenancy follows concept_mapping_runs → pr_analyses →
+// pull_requests → repositories → user_installations.
+// ---------------------------------------------------------------------------
+
+export const MAPPING_RUN_STATUSES = ["queued", "running", "succeeded", "failed"] as const;
+export type MappingRunStatus = (typeof MAPPING_RUN_STATUSES)[number];
+export type StoredEvidence = MappedConcept["evidence"];
+
+export const conceptMappingRuns = pgTable(
+  "concept_mapping_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    analysisId: uuid("analysis_id")
+      .notNull()
+      .references(() => prAnalyses.id, { onDelete: "cascade" }),
+    mapperVersion: text("mapper_version").notNull(),
+    curriculumVersion: integer("curriculum_version")
+      .notNull()
+      .references(() => curriculumVersions.version),
+    status: text("status", { enum: MAPPING_RUN_STATUSES }).notNull().default("queued"),
+    /** Stable machine code only; provider errors can echo request content. */
+    errorCode: text("error_code"),
+    provider: text("provider"),
+    model: text("model"),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    durationMs: integer("duration_ms"),
+    /** Counts of model output discarded by validation, by reason. Never content. */
+    dropped: jsonb("dropped").$type<Record<string, number>>(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    unique("concept_mapping_runs_idempotency_unique").on(
+      t.analysisId,
+      t.mapperVersion,
+      t.curriculumVersion,
+    ),
+    // Target of concept_mappings' composite key, which pins each mapping to its run's curriculum.
+    unique("concept_mapping_runs_id_curriculum_unique").on(t.id, t.curriculumVersion),
+    check(
+      "concept_mapping_runs_status_valid",
+      sql`${t.status} in (${inList(MAPPING_RUN_STATUSES)})`,
+    ),
+  ],
+);
+
+export const conceptMappings = pgTable(
+  "concept_mappings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    runId: uuid("run_id").notNull(),
+    curriculumVersion: integer("curriculum_version").notNull(),
+    conceptId: text("concept_id").notNull(),
+    /** Order after validation, best first. */
+    position: integer("position").notNull(),
+    relevance: doublePrecision("relevance").notNull(),
+    significance: doublePrecision("significance").notNull(),
+    suggestedDepth: text("suggested_depth", { enum: LESSON_DEPTHS }).notNull(),
+    /** Excerpts verified to appear in the redacted analysis context (D23). */
+    evidence: jsonb("evidence").$type<StoredEvidence>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    foreignKey({
+      name: "concept_mappings_run_fk",
+      columns: [t.runId, t.curriculumVersion],
+      foreignColumns: [conceptMappingRuns.id, conceptMappingRuns.curriculumVersion],
+    }).onDelete("cascade"),
+    // An unknown concept ID cannot be stored, whatever the model returned.
+    foreignKey({
+      name: "concept_mappings_concept_fk",
+      columns: [t.curriculumVersion, t.conceptId],
+      foreignColumns: [curriculumConcepts.curriculumVersion, curriculumConcepts.id],
+    }),
+    unique("concept_mappings_run_concept_unique").on(t.runId, t.conceptId),
+    check("concept_mappings_relevance_range", sql`${t.relevance} between 0 and 1`),
+    check("concept_mappings_significance_range", sql`${t.significance} between 0 and 1`),
+    check("concept_mappings_depth_valid", sql`${t.suggestedDepth} in (${inList(LESSON_DEPTHS)})`),
+    check(
+      "concept_mappings_evidence_present",
+      sql`jsonb_typeof(${t.evidence}) = 'array' and jsonb_array_length(${t.evidence}) > 0`,
+    ),
   ],
 );

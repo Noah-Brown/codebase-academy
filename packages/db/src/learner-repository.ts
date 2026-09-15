@@ -92,6 +92,18 @@ export async function getLearnerStates(
   return rows.map(toState);
 }
 
+/** The level chosen during onboarding, or null before onboarding. */
+export async function getStartingLevel(
+  db: Database,
+  userId: string,
+): Promise<StartingLevel | null> {
+  const [row] = await db
+    .select({ startingLevel: users.startingLevel })
+    .from(users)
+    .where(eq(users.id, userId));
+  return row?.startingLevel ?? null;
+}
+
 export class LearnerNotInitializedError extends Error {
   constructor(userId: string, conceptId: string) {
     super(

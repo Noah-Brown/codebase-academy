@@ -1,5 +1,6 @@
 import {
   authEnvSchema,
+  conceptMapperEnvSchema,
   githubAppEnvSchema,
   invalidEnvKeys,
   parseEnv,
@@ -13,10 +14,17 @@ function parseWebEnv() {
 }
 
 /** Names of settings that still need to be provided. Never includes values. */
-export function missingConfiguration(): { auth: string[]; githubApp: string[]; database: boolean } {
+export function missingConfiguration(): {
+  auth: string[];
+  githubApp: string[];
+  conceptMapper: string[];
+  database: boolean;
+} {
   return {
     auth: invalidEnvKeys(authEnvSchema),
     githubApp: invalidEnvKeys(githubAppEnvSchema),
+    // Read by the worker; checked here too so this page can say whether mapping will run.
+    conceptMapper: invalidEnvKeys(conceptMapperEnvSchema),
     database: !process.env.DATABASE_URL,
   };
 }

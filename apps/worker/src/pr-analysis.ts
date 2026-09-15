@@ -1,5 +1,6 @@
 import {
   getAnalysisForWorker,
+  jobErrorCode,
   markAnalysisFailed,
   markAnalysisRunning,
   markAnalysisSkipped,
@@ -44,8 +45,10 @@ export function createPrAnalysisHandler(deps: {
   db: Database;
   app: PrAnalysisGitHub;
   log: Logger;
+  /** Called once the context is stored, e.g. to schedule concept mapping. Failures are logged only. */
+  onContextReady?: (analysisId: string) => Promise<void>;
 }): JobHandler<PrAnalysisPayload> {
-  const { db, app, log } = deps;
+  const { db, app, log, onContextReady } = deps;
 
   return async (payload, { jobId, attempt }) => {
     const access = await getAnalysisForWorker(db, payload.analysisId);
@@ -98,6 +101,22 @@ export function createPrAnalysisHandler(deps: {
         estimatedTokens: context.budget.estimatedTokens,
       });
     } catch (error) {
+      await handleFailure(error);
+      return;
+    }
+
+    // Outside the try: the analysis already succeeded, so a follow-up failure must not fail it.
+    if (onContextReady) {
+      await onContextReady(analysis.id).catch((error: unknown) =>
+        log.warn("follow-up after analysis failed", {
+          jobId,
+          analysisId: analysis.id,
+          errorCode: jobErrorCode(error),
+        }),
+      );
+    }
+
+    async function handleFailure(error: unknown) {
       if (error instanceof ContextBuildError) {
         if (error.code === "head_sha_mismatch") return skip("head_sha_changed");
         if (error.code === "pull_request_not_found") return skip("pull_request_not_found");

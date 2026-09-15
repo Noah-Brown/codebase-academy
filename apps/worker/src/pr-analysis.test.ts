@@ -236,4 +236,38 @@ describe("pr-analysis job handler", () => {
     );
     expect((await analysisRow()).status).toBe("succeeded");
   });
+
+  it("hands a stored context to the follow-up step", async () => {
+    const ready: string[] = [];
+    await createPrAnalysisHandler({
+      db: handle.db,
+      app: fakeGitHub(),
+      log,
+      onContextReady: async (id) => void ready.push(id),
+    })({ analysisId }, { jobId: "j", attempt: 1 });
+    expect(ready).toEqual([analysisId]);
+  });
+
+  it("keeps a stored analysis succeeded when the follow-up step fails", async () => {
+    await createPrAnalysisHandler({
+      db: handle.db,
+      app: fakeGitHub(),
+      log,
+      onContextReady: async () => {
+        throw new Error("queue unavailable");
+      },
+    })({ analysisId }, { jobId: "j", attempt: 1 });
+    expect((await analysisRow()).status).toBe("succeeded");
+  });
+
+  it("does not run the follow-up step for a skipped analysis", async () => {
+    const ready: string[] = [];
+    await createPrAnalysisHandler({
+      db: handle.db,
+      app: fakeGitHub({ pr: null }),
+      log,
+      onContextReady: async (id) => void ready.push(id),
+    })({ analysisId }, { jobId: "j", attempt: 1 });
+    expect(ready).toEqual([]);
+  });
 });

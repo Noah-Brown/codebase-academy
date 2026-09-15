@@ -200,6 +200,61 @@ features PGlite cannot provide in tests. The table queue is small, fully covered
 concurrent claims), and needs no extra infrastructure. **Revisit** when job volume needs cron schedules,
 fan-out, or dedicated queue monitoring.
 
+## D21. Concept mapping through the developer's own Claude CLI **(product owner chose)**
+
+The product owner wanted to use their Claude subscription instead of paying per token. The `claude-cli`
+provider runs the unmodified `claude -p` that the developer is signed in to, as a subprocess of the worker.
+
+- **Policy.** Anthropic's Claude Code terms reserve subscription sign-in for ordinary use of Claude Code
+  and forbid developers from routing requests through Free, Pro, or Max credentials on behalf of their
+  users. A developer running this app for themselves fits the first; a deployment used by anyone else
+  does not, and must use the `anthropic` provider with an API key.
+- **Billing.** As of 2026-09-14, `claude -p` draws from the subscription's usage limits. Anthropic
+  paused a plan to move it to a separate monthly credit in June 2026 and says it will announce
+  changes first. The provider interface keeps a switch to the API a configuration change.
+- **Lockdown.**
+  - Repository content is untrusted, so every call runs with `--tools ""`, `--restricted`,
+    `--strict-mcp-config`, and `--no-session-persistence`, plus a custom system prompt.
+  - The prompt goes on stdin, and the process runs in an empty temporary directory.
+  - The environment is allow-listed, so no database URL, app secret, or API key reaches the CLI.
+  - `--bare` is not usable, because it ignores subscription sign-in.
+- **Model.** `sonnet` with medium effort. It is the API equivalent of `claude-sonnet-5` at $2/$10 per
+  million tokens. Haiku 4.5 was the cheaper candidate, but it has the earliest retirement date in the
+  lineup. `CONCEPT_MAPPER_MODEL` overrides it.
+
+**Revisit** before anyone other than the owner uses a deployment, or if Anthropic changes how headless
+usage is billed.
+
+## D22. Mapping runs, with evidence stored on each mapping **(delegated)**
+
+The brief suggests `concept_mappings`, `code_evidence`, and `model_calls` tables.
+
+- **Runs.** `concept_mapping_runs` is keyed on `(analysis, mapper version, curriculum version)`. A
+  prompt or curriculum change therefore remaps without re-reading GitHub, and old results stay
+  readable.
+- **Evidence.** Stored as a JSON array on each `concept_mappings` row. It is small (at most three
+  excerpts), always read together with the mapping, and already the `MappedConcept` shape the ranker
+  consumes.
+- **Foreign keys.** Composite keys pin each mapping to its run's curriculum version and to a real
+  `curriculum_concepts` row.
+- **Telemetry.** Provider, model, token counts, and duration are columns on the run. A separate
+  `model_calls` table waits for Milestone 5, when lesson generation and grading also make calls and
+  cost reporting is in scope.
+
+## D23. Evidence must be quoted from what the model was shown **(delegated)**
+
+The brief requires rejecting unknown concept IDs and validating cited paths. Validation also requires
+every excerpt to appear in the patch or surrounding lines of the cited file, as shown to the model.
+
+- **Matching.** Whitespace is normalized, and copied diff markers or line-number prefixes are tolerated.
+- **Scope of rejection.** Failures are dropped one mapping or evidence item at a time, and their counts
+  are stored, so one fabricated citation does not discard a useful answer. A mapping with no remaining
+  evidence is dropped.
+- **Line numbers.** Numbers outside the shown ranges are removed while the excerpt is kept, since
+  patches make line numbers unreliable (brief §12).
+- **Relevance.** Thresholds stay in the ranker (`minRelevance`, weak-evidence penalty) rather than being
+  applied twice.
+
 ## Deferred on purpose
 
 - **Playwright:** the thin-slice E2E test belongs to Milestone 5, once there is a flow to drive.

@@ -17,7 +17,7 @@ Later milestones replace the fixture inputs one at a time without changing the c
 
 | Slice input          | Milestones 0–1 (now)       | Replaced by                          |
 | -------------------- | -------------------------- | ------------------------------------ |
-| Concept mappings     | Hand-written fixture       | Milestone 3 concept mapper           |
+| Concept mappings     | Hand-written fixture       | Milestone 3 concept mapper (built)   |
 | Assessment evidence  | Direct calls in tests      | Milestone 4 lesson player and grader |
 | PR and code evidence | Fixture paths and excerpts | Milestone 2 GitHub ingestion         |
 
@@ -48,7 +48,7 @@ Later milestones replace the fixture inputs one at a time without changing the c
 **Exit criterion met:** given mappings and a learner state, the system selects a lesson and explains why
 (`selection.test.ts`, "payment-retry fixture").
 
-## Milestone 2: GitHub ingestion (code complete; live run pending)
+## Milestone 2: GitHub ingestion (done)
 
 Design and contracts: [`milestone-2-design.md`](./milestone-2-design.md).
 
@@ -60,10 +60,12 @@ Design and contracts: [`milestone-2-design.md`](./milestone-2-design.md).
 - [x] `pr_analyses` idempotent per `(repository, PR number, head SHA, analyzer version)`; Postgres job queue with leases and backoff (D20)
 - [x] Context builder: patches, surrounding lines, manifests, token budgets, skip lists, secret redaction
 - [x] Tenant scoping on every repository-derived lookup, with tests
-- [ ] Live run: install the app on a real repository, analyze a real pull request
+- [x] Live run (2026-09-14): installed the app on a real repository and analyzed a real pull request. It surfaced two
+      fixes: `getGitHubUserToken` passed the GitHub user ID where Better Auth expects its account row ID, and
+      a webhook secret mismatch between the app and `.env` (every delivery returned 401)
 
-**Exit criterion:** a real PR becomes a normalized, safely budgeted analysis context. Every step is covered
-by tests against GitHub fakes and PGlite; the remaining check is the live run above.
+**Exit criterion met:** a real PR becomes a normalized, safely budgeted analysis context. Every step is covered
+by tests against GitHub fakes and PGlite, and the live run above analyzed a real pull request.
 
 ### Credentials and configuration needed for Milestone 2
 
@@ -82,7 +84,7 @@ by tests against GitHub fakes and PGlite; the remaining check is the live run ab
 GitHub App settings:
 
 - **Callback URL:** `http://localhost:3000/api/auth/callback/github`
-- **Request user authorization (OAuth) during installation:** enabled
+- **Request user authorization (OAuth) during installation:** leave disabled. Users sign in first, and GitHub disables the Setup URL when this is on.
 - **Setup URL:** `http://localhost:3000/api/github/install/callback` (with **Redirect on update** enabled)
 - **Webhook URL:** `<tunnel>/api/github/webhook`
 - **Repository permissions** (least privilege, read-only):
@@ -93,6 +95,26 @@ GitHub App settings:
 - **Subscribe to events:** Pull request (installation events are delivered by default)
 - **Where can this app be installed:** Only on this account, for development.
 
+## Milestone 3: concept mapping (done)
+
+Design and contracts: [`milestone-3-design.md`](./milestone-3-design.md).
+
+- [x] Provider-neutral structured generation in `@academy/ai`, with a Claude CLI adapter (D21) and a Claude API adapter
+- [x] Versioned mapper prompt (`mapper-v1`) that carries the curriculum and puts untrusted code in nonce-delimited blocks
+- [x] Validation of concept IDs, evidence paths, excerpts, and line numbers (D23), backed by a concept foreign key
+- [x] Mapping runs and mappings (D22), scheduled after each analysis, with retry from the analysis page
+- [x] PR overview: recommended lesson with reasons and code evidence, other concepts, honest empty and failure states
+- [x] Golden fixtures (the brief's five plus a prompt-injection case) and a live evaluation, `npm run eval:mapper -w @academy/ai`
+- [x] Live run (2026-09-14): a real pull request mapped end to end, with three concepts and all evidence
+      grounded in 16 s. The golden evaluation passed 3 of 6; the failures trace to curriculum signals
+      (open question 3, results in the design doc)
+
+**Exit criterion met:** a PR shows credible concepts tied to real code evidence. The product owner reviewed
+the concepts mapped from a real pull request on the analysis page and judged them credible (2026-09-15).
+
+To enable mapping, set `CONCEPT_MAPPER_PROVIDER=claude-cli` in `.env`. The worker's user must be signed in
+to Claude Code. Then run `npm run db:migrate` and restart the worker.
+
 ## Open questions for the product owner
 
 1. **Mastery calibration.** Under the brief's priors and 0.90 threshold, Mastered takes about nine perfect
@@ -100,6 +122,13 @@ GitHub App settings:
    start with a lower threshold or lighter priors?
 2. **Lesson catalogue.** `docs/curriculum/` holds draft lesson outlines (four depths per concept). They
    are AI-drafted and unreviewed: they guide Milestone 4 but are not canonical curriculum data until reviewed.
+3. **Curriculum signal overlaps found by the mapper evaluation.** Several concepts overlap in ways the
+   curriculum doesn't resolve:
+   - `systems.concurrency` and `systems.bounded-concurrency` both list `Promise.all` and have no boundary.
+   - `db.joins` lists "queries executed per item in a loop", which also matches per-item writes.
+   - `dsa.search-and-sort` has no boundary against database sorting.
+
+   Adding `related` boundaries and sharpening those signals would be curriculum v3. Should that go ahead?
 
 ## Carried into Milestone 4
 
