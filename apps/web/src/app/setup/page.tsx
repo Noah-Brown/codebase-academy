@@ -56,6 +56,11 @@ export default function SetupPage() {
         missing={missing.githubApp}
         help="App ID, slug, a generated private key, and the webhook secret. Permissions: metadata, contents, and pull requests (read-only); email addresses (read-only)."
       />
+      <Group
+        title="Concept mapping (worker)"
+        missing={missing.conceptMapper}
+        help="Set CONCEPT_MAPPER_PROVIDER=claude-cli to map concepts with your own signed-in Claude Code (every tool disabled), or anthropic with ANTHROPIC_API_KEY. Restart the worker after changing it."
+      />
     </div>
   );
 }

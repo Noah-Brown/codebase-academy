@@ -4,9 +4,20 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./versions": "./src/versions.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "eval:mapper": "tsx --env-file-if-exists=../../.env scripts/eval-mapper.ts"
+  },
+  "dependencies": {
+    "@academy/curriculum": "^0.0.0",
+    "@academy/github": "^0.0.0",
+    "@academy/learning": "^0.0.0",
+    "@academy/shared": "*",
+    "@anthropic-ai/sdk": "^0.125.0",
+    "zod": "^4.6.5"
   }
 }

@@ -9,6 +9,8 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@academy/ai": "*",
+    "@academy/curriculum": "*",
     "@academy/db": "*",
     "@academy/github": "^0.0.0",
     "@academy/shared": "*",

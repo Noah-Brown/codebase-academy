@@ -35,6 +35,36 @@ export const githubAppEnvSchema = z.object({
   GITHUB_APP_WEBHOOK_SECRET: z.string().min(16, "must be at least 16 characters"),
 });
 
+const optionalText = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.string().min(1).optional(),
+);
+
+export const CONCEPT_MAPPER_PROVIDERS = ["claude-cli", "anthropic"] as const;
+
+/**
+ * Concept mapping (worker only). `claude-cli` runs the developer's own signed-in Claude Code with
+ * tools disabled (D21); `anthropic` calls the Claude API with an API key.
+ */
+export const conceptMapperEnvSchema = z
+  .object({
+    CONCEPT_MAPPER_PROVIDER: z.enum(CONCEPT_MAPPER_PROVIDERS),
+    CONCEPT_MAPPER_MODEL: optionalText,
+    CONCEPT_MAPPER_EFFORT: z.enum(["low", "medium", "high"]).default("medium"),
+    CONCEPT_MAPPER_TIMEOUT_MS: z.coerce.number().int().positive().default(300_000),
+    CLAUDE_CLI_PATH: z.string().min(1).default("claude"),
+    ANTHROPIC_API_KEY: optionalText,
+  })
+  .superRefine((env, ctx) => {
+    if (env.CONCEPT_MAPPER_PROVIDER === "anthropic" && !env.ANTHROPIC_API_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ANTHROPIC_API_KEY"],
+        message: "required when CONCEPT_MAPPER_PROVIDER is anthropic",
+      });
+    }
+  });
+
 export const webEnvSchema = databaseEnvSchema
   .extend(authEnvSchema.shape)
   .extend(githubAppEnvSchema.shape);

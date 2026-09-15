@@ -7,9 +7,9 @@ model decide _what_ you should learn next. Your current code supplies the exampl
 
 > Working title. Product brief: [`docs/product-handoff.md`](docs/product-handoff.md)
 
-**Status:** Milestones 0–1 are complete, and Milestone 2 (GitHub ingestion) is code-complete and tested
-against GitHub fakes; a live run against a real GitHub App is next. See
-[`docs/implementation-plan.md`](docs/implementation-plan.md) and [`docs/milestone-2-design.md`](docs/milestone-2-design.md).
+**Status:** Milestones 0–3 are complete: a real pull request is analyzed and mapped to curriculum
+concepts with grounded code evidence. Milestone 4 (the lesson loop) is next. See
+[`docs/implementation-plan.md`](docs/implementation-plan.md) and [`docs/milestone-3-design.md`](docs/milestone-3-design.md).
 
 ## Requirements
 
@@ -32,7 +32,7 @@ Run things:
 
 ```sh
 npm run dev                       # web app → http://localhost:3000
-npm run worker                    # background worker: builds pull request analysis contexts
+npm run worker                    # background worker: analysis contexts, then concept mapping
 curl localhost:3000/api/health    # {"status":"ok","database":"ok"}
 open http://localhost:3000/setup   # which settings are still missing (names only)
 ```
@@ -46,6 +46,7 @@ open http://localhost:3000/setup   # which settings are still missing (names onl
 | `npm run curriculum:validate`           | Validate curriculum JSON: schema, references, prerequisite graph         |
 | `npm run curriculum:import`             | Import the curriculum into Postgres (idempotent; versions are immutable) |
 | `npm run demo:select -- --level novice` | Rank the fixture PR's concepts and explain the recommendation            |
+| `npm run eval:mapper -w @academy/ai`    | Run the concept mapper on the golden fixtures (spends real model usage)  |
 | `npm run db:generate`                   | Generate a migration after editing `packages/db/src/schema.ts`           |
 | `npm run db:migrate`                    | Apply migrations to `DATABASE_URL`                                       |
 | `npm run build`                         | Production build of the web app                                          |
@@ -55,14 +56,14 @@ open http://localhost:3000/setup   # which settings are still missing (names onl
 ```text
 apps/
   web/          Next.js UI + HTTP routes: sign-in, onboarding, repositories, analyses, GitHub webhook
-  worker/       Background jobs (Postgres queue): pull request analysis
+  worker/       Background jobs (Postgres queue): pull request analysis, concept mapping
 packages/
   curriculum/   Curriculum schema, graph validation, seed data (data/*.json)
   learning/     Mastery model, status labels, lesson ranking. Pure functions.
   db/           Drizzle schema, migrations, repositories, PGlite test harness
   shared/       Env validation, redacting logger, job interface
   github/       GitHub App client, webhook verification, analysis context builder
-  ai/           Model-provider boundary (Milestone 3)
+  ai/           Model providers (Claude CLI, Claude API), concept-mapper prompt, validation, golden fixtures
 docs/
   product-handoff.md      The product brief
   implementation-plan.md  Milestone status, next steps, required credentials
