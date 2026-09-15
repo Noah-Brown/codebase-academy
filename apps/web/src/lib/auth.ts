@@ -1,4 +1,5 @@
 import { schema } from "@academy/db";
+import { createLogger } from "@academy/shared";
 import { betterAuth } from "better-auth";
 import { and, eq } from "drizzle-orm";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -6,6 +7,8 @@ import { nextCookies } from "better-auth/next-js";
 import { headers } from "next/headers";
 import { getWebEnv } from "./config";
 import { getDatabase } from "./db";
+
+const log = createLogger({ bindings: { module: "auth" } });
 
 function createAuth() {
   const env = getWebEnv();
@@ -63,18 +66,19 @@ export async function getGitHubUserToken(userId: string): Promise<string | null>
   const db = getDatabase();
   if (!auth || !db) return null;
   const [account] = await db
-    .select({ accountId: schema.accounts.accountId })
+    .select({ id: schema.accounts.id })
     .from(schema.accounts)
     .where(and(eq(schema.accounts.userId, userId), eq(schema.accounts.providerId, "github")))
     .limit(1);
   if (!account) return null;
   try {
     const result = await auth.api.getAccessToken({
-      body: { accountId: account.accountId, userId },
+      body: { accountId: account.id, userId },
       headers: await headers(),
     });
     return result?.accessToken ?? null;
-  } catch {
+  } catch (error) {
+    log.warn("github user token unavailable", { userId, error });
     return null;
   }
 }
