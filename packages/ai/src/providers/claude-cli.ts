@@ -62,11 +62,11 @@ export interface ClaudeCliModelOptions {
 }
 
 export function claudeCliEnv(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = {};
+  const env: Record<string, string | undefined> = {};
   for (const name of CLAUDE_CLI_ENV_ALLOWLIST) {
     if (source[name] !== undefined) env[name] = source[name];
   }
-  return env;
+  return env as NodeJS.ProcessEnv;
 }
 
 export function claudeCliArgs(input: {

@@ -22,6 +22,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -254,6 +255,10 @@ export const masteryEvents = pgTable(
       foreignColumns: [curriculumConcepts.curriculumVersion, curriculumConcepts.id],
     }),
     index("mastery_events_user_concept_idx").on(t.userId, t.conceptId, t.sequence),
+    // A retried grading job cannot record the same assessment attempt twice.
+    uniqueIndex("mastery_events_assessment_attempt_unique")
+      .on(t.assessmentAttemptId)
+      .where(sql`${t.assessmentAttemptId} is not null`),
     check("mastery_events_score_range", sql`${t.score} between 0 and 1`),
     check("mastery_events_confidence_range", sql`${t.graderConfidence} between 0 and 1`),
   ],
@@ -507,6 +512,148 @@ export const conceptMappings = pgTable(
     check(
       "concept_mappings_evidence_present",
       sql`jsonb_typeof(${t.evidence}) = 'array' and jsonb_array_length(${t.evidence}) > 0`,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Lessons (Milestone 4). Every row carries user_id and also reaches the repository through
+// pr_analyses, so reads can require both the owner and current repository access.
+// ---------------------------------------------------------------------------
+
+export const LESSON_STATUSES = ["queued", "generating", "ready", "failed"] as const;
+export type LessonStatus = (typeof LESSON_STATUSES)[number];
+export const LESSON_SESSION_STATUSES = ["active", "completed"] as const;
+export type LessonSessionStatus = (typeof LESSON_SESSION_STATUSES)[number];
+export const ATTEMPT_STATUSES = ["grading", "graded", "failed"] as const;
+export type AttemptStatus = (typeof ATTEMPT_STATUSES)[number];
+export const RESPONSE_KINDS = ["choice", "text", "dont_know"] as const;
+export type ResponseKind = (typeof RESPONSE_KINDS)[number];
+
+export const lessons = pgTable(
+  "lessons",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    analysisId: uuid("analysis_id")
+      .notNull()
+      .references(() => prAnalyses.id, { onDelete: "cascade" }),
+    mappingRunId: uuid("mapping_run_id")
+      .notNull()
+      .references(() => conceptMappingRuns.id, { onDelete: "cascade" }),
+    conceptId: text("concept_id").notNull(),
+    curriculumVersion: integer("curriculum_version").notNull(),
+    depth: text("depth", { enum: LESSON_DEPTHS }).notNull(),
+    generatorVersion: text("generator_version").notNull(),
+    status: text("status", { enum: LESSON_STATUSES }).notNull().default("queued"),
+    /** Stable machine code only. */
+    errorCode: text("error_code"),
+    /** Generation input (LessonSources): verified evidence, ranking reasons, learner status. */
+    sources: jsonb("sources").$type<Record<string, unknown>>().notNull(),
+    /** The validated lesson (LessonContent). Holds answer keys: never sent to the client whole. */
+    content: jsonb("content").$type<Record<string, unknown>>(),
+    provider: text("provider"),
+    model: text("model"),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    durationMs: integer("duration_ms"),
+    readyAt: timestamp("ready_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    unique("lessons_idempotency_unique").on(
+      t.userId,
+      t.analysisId,
+      t.conceptId,
+      t.depth,
+      t.generatorVersion,
+    ),
+    foreignKey({
+      name: "lessons_concept_fk",
+      columns: [t.curriculumVersion, t.conceptId],
+      foreignColumns: [curriculumConcepts.curriculumVersion, curriculumConcepts.id],
+    }),
+    index("lessons_user_idx").on(t.userId, t.createdAt),
+    check("lessons_status_valid", sql`${t.status} in (${inList(LESSON_STATUSES)})`),
+    check("lessons_depth_valid", sql`${t.depth} in (${inList(LESSON_DEPTHS)})`),
+  ],
+);
+
+export const lessonSessions = pgTable(
+  "lesson_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    lessonId: uuid("lesson_id")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: text("status", { enum: LESSON_SESSION_STATUSES }).notNull().default("active"),
+    currentStep: integer("current_step").notNull().default(0),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("lesson_sessions_one_active")
+      .on(t.lessonId, t.userId)
+      .where(sql`${t.status} = 'active'`),
+    index("lesson_sessions_user_idx").on(t.userId, t.completedAt),
+    check("lesson_sessions_status_valid", sql`${t.status} in (${inList(LESSON_SESSION_STATUSES)})`),
+    check("lesson_sessions_current_step_nonnegative", sql`${t.currentStep} >= 0`),
+  ],
+);
+
+export const assessmentAttempts = pgTable(
+  "assessment_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => lessonSessions.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    stepIndex: integer("step_index").notNull(),
+    responseKind: text("response_kind", { enum: RESPONSE_KINDS }).notNull(),
+    /** The learner's answer: { choiceId } or { text }. Private; never logged. */
+    response: jsonb("response").$type<Record<string, unknown>>().notNull(),
+    status: text("status", { enum: ATTEMPT_STATUSES }).notNull().default("grading"),
+    errorCode: text("error_code"),
+    evidenceKind: evidenceKindEnum("evidence_kind").notNull(),
+    assessmentMode: assessmentModeEnum("assessment_mode").notNull(),
+    score: doublePrecision("score"),
+    graderConfidence: doublePrecision("grader_confidence"),
+    /** The deterministic result, or the validated GradedResponse for open responses. */
+    grading: jsonb("grading").$type<Record<string, unknown>>(),
+    graderProvider: text("grader_provider"),
+    graderModel: text("grader_model"),
+    graderVersion: text("grader_version"),
+    masteryEventId: uuid("mastery_event_id").references(() => masteryEvents.id, {
+      onDelete: "set null",
+    }),
+    /** "This grade seems wrong": kept for review, never changes the grade. */
+    flaggedAt: timestamp("flagged_at", { withTimezone: true }),
+    flagNote: text("flag_note"),
+    gradedAt: timestamp("graded_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    unique("assessment_attempts_session_step_unique").on(t.sessionId, t.stepIndex),
+    check("assessment_attempts_status_valid", sql`${t.status} in (${inList(ATTEMPT_STATUSES)})`),
+    check(
+      "assessment_attempts_response_kind_valid",
+      sql`${t.responseKind} in (${inList(RESPONSE_KINDS)})`,
+    ),
+    check("assessment_attempts_score_range", sql`${t.score} is null or ${t.score} between 0 and 1`),
+    check(
+      "assessment_attempts_confidence_range",
+      sql`${t.graderConfidence} is null or ${t.graderConfidence} between 0 and 1`,
     ),
   ],
 );

@@ -73,3 +73,37 @@ export {
   type DropReason,
   type ValidatedMapping,
 } from "./concept-mapping/validate";
+
+export { GENERATOR_VERSION, GRADER_VERSION } from "./versions";
+export * from "./lesson/content";
+export {
+  defaultGraderConfig,
+  defaultLessonGeneratorConfig,
+  type GraderConfig,
+  type LessonGeneratorConfig,
+} from "./lesson/config";
+export { generateLesson, gradeOpenResponse, type CallTelemetry } from "./lesson/generate";
+export {
+  buildGraderPrompt,
+  buildLessonPrompt,
+  GRADER_SYSTEM,
+  LESSON_GENERATOR_SYSTEM,
+} from "./lesson/prompt";
+export {
+  graderOutputJsonSchema,
+  graderOutputSchema,
+  lessonOutputJsonSchema,
+  lessonOutputSchema,
+  type GraderOutput,
+  type LessonOutput,
+} from "./lesson/schema";
+export {
+  allowedModes,
+  modesForDepth,
+  OutputValidationError,
+  quoteAppearsInAnswer,
+  validateGraderOutput,
+  validateLessonOutput,
+  type GradedCriterion,
+  type GradedResponse,
+} from "./lesson/validate";

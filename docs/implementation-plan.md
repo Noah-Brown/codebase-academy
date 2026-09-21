@@ -115,13 +115,35 @@ the concepts mapped from a real pull request on the analysis page and judged the
 To enable mapping, set `CONCEPT_MAPPER_PROVIDER=claude-cli` in `.env`. The worker's user must be signed in
 to Claude Code. Then run `npm run db:migrate` and restart the worker.
 
+## Milestone 4: lesson loop (done)
+
+Design and contracts: [`milestone-4-design.md`](./milestone-4-design.md). Product decisions, 2026-09-15:
+
+- Keep the mastery bar (D8).
+- Write rubrics per question (D24).
+- Don't use the draft lesson catalogue.
+- Generate a lesson when the learner starts it.
+
+- [x] Lesson content contract, generator prompt, and structural validation (`lesson-v1`, D26)
+- [x] Open-response grader with score-from-criteria and quote verification (`grader-v1`, D25)
+- [x] `lessons`, `lesson_sessions`, `assessment_attempts`; one mastery event per attempt
+- [x] Worker queues: `lesson-generation`, `assessment-grading`
+- [x] Lesson player: one step at a time, answer-first checks, "I don't know—teach me", flag a grade
+- [x] Takeaway shows the mastery change; recent lessons feed the ranker's recent-lesson penalty
+- [x] Live evaluation (`npm run eval:lesson -w @academy/ai`) and a real lesson taken end to end
+      (2026-09-21): a 7-step intro lesson generated from a real pull request in 17.6 s, completed in the
+      player, with both answers recorded as mastery events
+
+**Exit criterion met:** the full thin-slice demo works (connect repo → pick a PR → see mapped concepts →
+take a lesson → mastery changes). The product owner took a real lesson on 2026-09-21 and judged the loop
+and its grading sound.
+
 ## Open questions for the product owner
 
-1. **Mastery calibration.** Under the brief's priors and 0.90 threshold, Mastered takes about nine perfect
-   engineering defenses on a difficulty-4 concept (D8). Is that the intended bar, or should Milestone 4
-   start with a lower threshold or lighter priors?
-2. **Lesson catalogue.** `docs/curriculum/` holds draft lesson outlines (four depths per concept). They
-   are AI-drafted and unreviewed: they guide Milestone 4 but are not canonical curriculum data until reviewed.
+1. ~~**Mastery calibration.**~~ Answered 2026-09-15: keep the current bar (about nine perfect engineering
+   defenses on a difficulty-4 concept) and revisit with real lesson data (D8).
+2. ~~**Lesson catalogue.**~~ Answered 2026-09-15: lessons don't use the AI-drafted outlines in
+   `docs/curriculum/`; they draw only on canonical curriculum fields and verified PR evidence (D24).
 3. **Curriculum signal overlaps found by the mapper evaluation.** Several concepts overlap in ways the
    curriculum doesn't resolve:
    - `systems.concurrency` and `systems.bounded-concurrency` both list `Promise.all` and have no boundary.

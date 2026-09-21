@@ -5,7 +5,9 @@
 import { MAPPER_VERSION, createStructuredModel } from "@academy/ai";
 import { getCurriculum } from "@academy/curriculum";
 import {
+  ASSESSMENT_GRADING_QUEUE,
   CONCEPT_MAPPING_QUEUE,
+  LESSON_GENERATION_QUEUE,
   createDatabase,
   createPgJobQueue,
   pingDatabase,
@@ -20,7 +22,9 @@ import {
   invalidEnvKeys,
   parseEnv,
 } from "@academy/shared";
+import { createAssessmentGradingHandler } from "./assessment-grading";
 import { createConceptMappingHandler } from "./concept-mapping";
+import { createLessonGenerationHandler } from "./lesson-generation";
 import { PR_ANALYSIS_QUEUE, createPrAnalysisHandler } from "./pr-analysis";
 
 const env = parseEnv(databaseEnvSchema);
@@ -60,8 +64,12 @@ if (!process.env.CONCEPT_MAPPER_PROVIDER) {
       claudeCliPath: mapper.CLAUDE_CLI_PATH,
       anthropicApiKey: mapper.ANTHROPIC_API_KEY,
     });
-    await queue.work(CONCEPT_MAPPING_QUEUE, createConceptMappingHandler({ db, model, graph, log }));
-    registered.push(CONCEPT_MAPPING_QUEUE);
+    // One model configuration serves mapping, lesson generation, and grading (D27).
+    const deps = { db, model, graph, log };
+    await queue.work(CONCEPT_MAPPING_QUEUE, createConceptMappingHandler(deps));
+    await queue.work(LESSON_GENERATION_QUEUE, createLessonGenerationHandler(deps));
+    await queue.work(ASSESSMENT_GRADING_QUEUE, createAssessmentGradingHandler(deps));
+    registered.push(CONCEPT_MAPPING_QUEUE, LESSON_GENERATION_QUEUE, ASSESSMENT_GRADING_QUEUE);
     onContextReady = async (analysisId) => {
       const result = await scheduleConceptMapping(db, {
         analysisId,

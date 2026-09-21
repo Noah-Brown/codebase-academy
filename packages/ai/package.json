@@ -6,11 +6,13 @@
   "exports": {
     ".": "./src/index.ts",
     "./versions": "./src/versions.ts",
+    "./lessons": "./src/lesson/content.ts",
     "./testing": "./src/testing.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "eval:mapper": "tsx --env-file-if-exists=../../.env scripts/eval-mapper.ts"
+    "eval:mapper": "tsx --env-file-if-exists=../../.env scripts/eval-mapper.ts",
+    "eval:lesson": "tsx --env-file-if-exists=../../.env scripts/eval-lesson.ts"
   },
   "dependencies": {
     "@academy/curriculum": "^0.0.0",
