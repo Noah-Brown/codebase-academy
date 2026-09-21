@@ -36,6 +36,13 @@
       "when": 1789440405750,
       "tag": "0004_concept_mapping",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789504108124,
+      "tag": "0005_lesson_loop",
+      "breakpoints": true
     }
   ]
 }

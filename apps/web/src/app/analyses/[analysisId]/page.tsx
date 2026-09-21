@@ -1,27 +1,18 @@
-import { getCurriculum } from "@academy/curriculum";
-import {
-  getAnalysisForUser,
-  getConceptMappingForUser,
-  getLearnerStates,
-  getStartingLevel,
-  type ConceptMappingView,
-  type Database,
-  type StoredEvidence,
-} from "@academy/db";
+import { getAnalysisForUser, type ConceptMappingView } from "@academy/db";
 import type { AnalysisContext } from "@academy/github";
 import {
   MASTERY_LABEL_TEXT,
-  createLearnerView,
-  selectLesson,
   type LessonDepth,
   type RankedCandidate,
   type SelectionResult,
 } from "@academy/learning";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CodeEvidence } from "@/components/code-evidence";
 import { MapConceptsButton } from "@/components/map-concepts-button";
-import { currentMappingVersions } from "@/lib/concept-mapping";
+import { StartLessonButton } from "@/components/start-lesson-button";
 import { getDatabase } from "@/lib/db";
+import { loadLessonSelection } from "@/lib/lessons";
 import { requireOnboardedUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -67,40 +58,6 @@ const MAPPING_FAILURE_TEXT: Record<string, string> = {
 
 const panel = "rounded-lg border border-stone-200 p-5 text-sm dark:border-stone-800";
 
-async function loadMapping(db: Database, userId: string, analysisId: string) {
-  const view = await getConceptMappingForUser(db, userId, analysisId, currentMappingVersions());
-  if (!view || view.run.status !== "succeeded") return { view, selection: null };
-  const { graph } = getCurriculum();
-  const level = (await getStartingLevel(db, userId)) ?? "intermediate";
-  const learner = createLearnerView(level, graph, await getLearnerStates(db, userId));
-  return {
-    view,
-    selection: selectLesson({ mappings: view.mappings, graph, learner, now: new Date() }),
-  };
-}
-
-function lineLabel(item: StoredEvidence[number]) {
-  if (!item.startLine) return item.path;
-  const end = item.endLine && item.endLine !== item.startLine ? `–${item.endLine}` : "";
-  return `${item.path}:${item.startLine}${end}`;
-}
-
-function Evidence({ items }: { items: StoredEvidence }) {
-  return (
-    <ul className="space-y-3">
-      {items.map((item, index) => (
-        <li key={`${item.path}-${index}`} className="space-y-1">
-          <div className="break-all font-mono text-xs text-stone-500">{lineLabel(item)}</div>
-          <pre className="overflow-x-auto rounded-md bg-stone-100 p-3 text-xs dark:bg-stone-900">
-            <code>{item.excerpt}</code>
-          </pre>
-          <p className="text-sm text-stone-600 dark:text-stone-400">{item.rationale}</p>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function MappingState({
   analysisId,
   view,
@@ -134,7 +91,13 @@ function MappingState({
   );
 }
 
-function Recommendation({ candidate }: { candidate: RankedCandidate }) {
+function Recommendation({
+  analysisId,
+  candidate,
+}: {
+  analysisId: string;
+  candidate: RankedCandidate;
+}) {
   return (
     <section className="space-y-4 rounded-lg border-2 border-stone-900 p-5 dark:border-stone-100">
       <div className="space-y-1">
@@ -149,23 +112,34 @@ function Recommendation({ candidate }: { candidate: RankedCandidate }) {
           <li key={reason}>{reason}</li>
         ))}
       </ul>
-      <Evidence items={candidate.mapping.evidence} />
-      <div className="flex flex-wrap gap-3 pt-1 text-sm">
-        <span className="rounded-md bg-stone-200 px-4 py-2 text-stone-500 dark:bg-stone-800">
-          Start lesson (Milestone 4)
-        </span>
-        <span className="px-1 py-2 text-stone-500">Or keep shipping. Nothing is blocked.</span>
+      <CodeEvidence items={candidate.mapping.evidence} />
+      <div className="flex flex-wrap items-center gap-3 pt-1 text-sm">
+        <StartLessonButton
+          analysisId={analysisId}
+          conceptId={candidate.conceptId}
+          label="Start lesson"
+          primary
+        />
+        <span className="text-stone-500">Or keep shipping. Nothing is blocked.</span>
       </div>
     </section>
   );
 }
 
-function Concepts({ view, selection }: { view: ConceptMappingView; selection: SelectionResult }) {
+function Concepts({
+  analysisId,
+  view,
+  selection,
+}: {
+  analysisId: string;
+  view: ConceptMappingView;
+  selection: SelectionResult;
+}) {
   const others = selection.ranked.filter((candidate) => candidate !== selection.selected);
   return (
     <>
       {selection.selected ? (
-        <Recommendation candidate={selection.selected} />
+        <Recommendation analysisId={analysisId} candidate={selection.selected} />
       ) : (
         <p className={panel}>
           {view.mappings.length === 0
@@ -201,7 +175,12 @@ function Concepts({ view, selection }: { view: ConceptMappingView; selection: Se
                         <li key={reason}>{reason}</li>
                       ))}
                     </ul>
-                    <Evidence items={candidate.mapping.evidence} />
+                    <CodeEvidence items={candidate.mapping.evidence} />
+                    <StartLessonButton
+                      analysisId={analysisId}
+                      conceptId={candidate.conceptId}
+                      label="Learn this instead"
+                    />
                   </div>
                 </details>
               </li>
@@ -331,7 +310,7 @@ export default async function AnalysisPage({
   if (!access) notFound();
   const { analysis, pullRequest, repository } = access;
   const context = analysis.status === "succeeded" ? (analysis.context as AnalysisContext) : null;
-  const mapping = context ? await loadMapping(db, user.id, analysis.id) : null;
+  const mapping = context ? await loadLessonSelection(db, user.id, analysis.id) : null;
 
   return (
     <div className="space-y-6 pt-4">
@@ -369,7 +348,7 @@ export default async function AnalysisPage({
       ) : (
         <>
           {mapping.selection && mapping.view ? (
-            <Concepts view={mapping.view} selection={mapping.selection} />
+            <Concepts analysisId={analysis.id} view={mapping.view} selection={mapping.selection} />
           ) : (
             <MappingState analysisId={analysis.id} view={mapping.view} />
           )}

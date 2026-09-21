@@ -43,6 +43,10 @@ export interface LearningConfig {
     minConfidenceToUpdate: number;
     /** At or above this confidence, full evidence weight applies; below it weight scales down. */
     fullWeightConfidence: number;
+    /** Credit an open-response rubric criterion earns for each grader result (D25). */
+    criterionCredit: Record<"yes" | "partial" | "no", number>;
+    /** Confidence multiplier per yes/partial criterion whose quoted evidence is not in the answer. */
+    unverifiedEvidenceConfidenceFactor: number;
   };
   status: {
     /** Accumulated evidence weight below which a concept is labeled New regardless of mean. */
@@ -125,6 +129,8 @@ export const defaultLearningConfig: LearningConfig = {
   grading: {
     minConfidenceToUpdate: 0.4,
     fullWeightConfidence: 0.7,
+    criterionCredit: { yes: 1, partial: 0.5, no: 0 },
+    unverifiedEvidenceConfidenceFactor: 0.5,
   },
   status: {
     newBelowEvidenceWeight: 1.0,

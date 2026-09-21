@@ -84,10 +84,11 @@ relative to that config wherever possible.
   - **Mastered** also needs evidence weight ≥ 4.0, plus either two or more sessions or two or more
     demonstrated assessment modes.
   - When the evidence caps the label, `insufficientEvidence` is set and the estimate is reported separately.
-- **Calibration note (needs product input):** with β=2 and a 0.90 threshold, α must reach 18. From an
-  intermediate difficulty-4 prior, that means nine perfect _engineering defenses_, or about 17 perfect
-  short explanations. Any imperfect answer raises the bar further. The spec's numbers produce this, and
-  a test pins it (`mastery.test.ts`). It may prove too conservative once real usage data exists.
+- **Calibration (product owner confirmed, 2026-09-15):** with β=2 and a 0.90 threshold, α must reach 18.
+  From an intermediate difficulty-4 prior, that means nine perfect _engineering defenses_, or about 17
+  perfect short explanations. Any imperfect answer raises the bar further. The spec's numbers produce
+  this, and a test pins it (`mastery.test.ts`). The product owner chose to keep this bar as the starting
+  point. **Revisit** once real lesson data shows how quickly learners reach Proficient and Mastered.
 
 ## D9. Lesson depth
 
@@ -155,10 +156,18 @@ chain, and any `params:` line is dropped from messages and stacks. Drizzle puts 
 there, and those values could be code or learner answers. This is a safety net, not permission to log
 content.
 
-## D15. UI components **(delegated, deferred)**
+## D15. UI components **(delegated)**
 
-The Milestone 0/1 pages are Tailwind-only server components. shadcn/ui gets adopted when interactive,
-accessibility-sensitive components arrive with the lesson player in Milestone 4.
+Pages are Tailwind-only. The Milestone 4 lesson player also stays Tailwind-only, built on native,
+accessible form controls:
+
+- `fieldset` and `legend` radio groups for choices;
+- a labelled `textarea` for written answers;
+- real `button`s;
+- an `aria-live` region for feedback.
+
+Its interactions are simple enough that a component library would add setup, not accessibility.
+**Revisit** when menus, dialogs, or comboboxes arrive.
 
 ## D16. Environment loading
 
@@ -254,6 +263,54 @@ every excerpt to appear in the patch or surrounding lines of the cited file, as 
   patches make line numbers unreliable (brief §12).
 - **Relevance.** Thresholds stay in the ranker (`minRelevance`, weak-evidence penalty) rather than being
   applied twice.
+
+## D24. Rubrics are written per question from canonical objectives **(product owner chose)**
+
+The brief puts rubric templates in the curriculum layer. Authoring them for 60 concepts would be
+LLM-drafted curriculum needing expert review (brief §24).
+
+- **Instead:** the lesson generator writes each open-response rubric at generation time.
+- **Grounding:** each question names the canonical learning objective it assesses, and the generator
+  sees the concept's canonical misconceptions.
+- **Storage:** the rubric is stored with the lesson, and the grader grades only against that stored
+  rubric.
+- **Draft catalogue:** the draft lesson catalogue in `docs/curriculum/` is not used. Lessons draw only
+  on canonical curriculum fields and verified PR evidence.
+- **Trade-off:** grading consistency across lessons for the same concept depends on generation quality.
+
+**Revisit** if flagged grades cluster on particular concepts. Curriculum rubric templates, reviewed,
+would then be curriculum v3 work.
+
+## D25. Open-response scores come from rubric results, not the model's total **(delegated)**
+
+The grader returns a `yes | partial | no` result per criterion, each with a quote from the answer.
+
+- **Score:** `@academy/learning` computes the weighted share of credit (configurable, default 1 / 0.5 /
+  0). The same stored grading result therefore always yields the same score, and a total the model
+  miscalculates cannot move mastery.
+- **Quote check:**
+  - A yes or partial result must quote the learner's answer.
+  - Each quote not found in the answer (whitespace-normalized) halves the grader's confidence
+    (configurable). The existing D8 confidence rules then reduce or skip the mastery update.
+- **Deterministic cases:** multiple choice and "I don't know" are graded without a model: score 1 or 0,
+  confidence 1.
+
+## D26. Lessons show code only through verified evidence **(delegated)**
+
+Lesson text may not contain fenced code blocks.
+
+- **Where code comes from:** code focus steps reference evidence IDs, which render the excerpts the
+  concept mapper verified against the pull request (D23).
+- **Why:** this enforces the brief's "never introduce private code not included in the context" and
+  keeps generated or invented code out of what looks like the learner's repository.
+- **Inline code:** inline `code` spans for identifiers are allowed.
+
+## D27. One model configuration for mapping, lessons, and grading **(delegated)**
+
+Lesson generation and grading reuse the `CONCEPT_MAPPER_*` settings and the same `StructuredModel`, so a
+single signed-in `claude -p` (D21) or API key serves every model call.
+
+**Revisit** (and rename the variables) if tasks need different models, for example a cheaper grader.
 
 ## Deferred on purpose
 

@@ -36,3 +36,10 @@ export { ModelCallError };
 export { contextFor, fileFrom, lines, skippedFile } from "./concept-mapping/golden/context";
 export { goldenFixtures, type GoldenFixture } from "./concept-mapping/golden/fixtures";
 export { scoreGolden, type GoldenScore } from "./concept-mapping/golden/score";
+export {
+  idempotencyEvidence,
+  idempotencyGraderOutput,
+  idempotencyLessonOutput,
+  idempotencySources,
+  strongIdempotencyAnswer,
+} from "./lesson/fixtures";
